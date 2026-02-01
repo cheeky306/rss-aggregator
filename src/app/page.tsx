@@ -202,15 +202,16 @@ async function ArticleList({
   search,
   time,
   page,
+  perPage,
 }: {
   category?: string;
   source?: string;
   search?: string;
   time?: string;
   page: number;
+  perPage: number;
 }) {
   const { startDate, endDate } = getTimeRange(time);
-  const perPage = 20;
   const offset = (page - 1) * perPage;
   
   const { articles, total } = await getArticles({
@@ -226,12 +227,14 @@ async function ArticleList({
   const totalPages = Math.ceil(total / perPage);
 
   // Build URL params for pagination links
-  const buildPageUrl = (p: number) => {
+  const buildPageUrl = (p: number, newPerPage?: number) => {
     const params = new URLSearchParams();
     if (category) params.set('category', category);
     if (source) params.set('source', source);
     if (search) params.set('search', search);
     if (time) params.set('time', time);
+    const pp = newPerPage || perPage;
+    if (pp !== 20) params.set('perPage', pp.toString());
     if (p > 1) params.set('page', p.toString());
     const queryString = params.toString();
     return queryString ? `/?${queryString}` : '/';
@@ -259,7 +262,25 @@ async function ArticleList({
               </a>
             )}
           </div>
-          <span className="text-xs text-gray-500">Click article to expand</span>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-gray-500">Show:</span>
+              {[20, 50, 100].map((n) => (
+                <a
+                  key={n}
+                  href={buildPageUrl(1, n)}
+                  className={`px-2 py-1 rounded ${
+                    perPage === n
+                      ? 'bg-purple-600 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {n}
+                </a>
+              ))}
+            </div>
+            <span className="text-xs text-gray-500">Click to expand</span>
+          </div>
         </div>
         <div className="divide-y divide-gray-100 px-4">
           {articles.map((article) => (
@@ -338,7 +359,7 @@ async function ArticleList({
 export default async function Dashboard({
   searchParams,
 }: {
-  searchParams: Promise<{ category?: string; source?: string; search?: string; time?: string; page?: string }>;
+  searchParams: Promise<{ category?: string; source?: string; search?: string; time?: string; page?: string; perPage?: string }>;
 }) {
   const params = await searchParams;
   
@@ -348,6 +369,9 @@ export default async function Dashboard({
   const search = params.search?.trim() || undefined;
   const time = params.time?.trim() || undefined;
   const page = Math.max(1, parseInt(params.page || '1', 10));
+  const perPage = [20, 50, 100].includes(parseInt(params.perPage || '20', 10)) 
+    ? parseInt(params.perPage || '20', 10) 
+    : 20;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -439,7 +463,7 @@ export default async function Dashboard({
                 </div>
               }
             >
-              <ArticleList category={category} source={source} search={search} time={time} page={page} />
+              <ArticleList category={category} source={source} search={search} time={time} page={page} perPage={perPage} />
             </Suspense>
           </main>
         </div>
