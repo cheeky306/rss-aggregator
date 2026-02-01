@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useChat } from './ChatProvider';
 
 export function DeleteButton({ id, title }: { id: string; title: string }) {
   const [loading, setLoading] = useState(false);
@@ -227,6 +228,7 @@ export function ExpandableArticleCard({ article }: { article: Article }) {
   const colors = categoryColors[article.category] || categoryColors.tech;
   const hasAI = !!article.briefing;
   const router = useRouter();
+  const { openChat } = useChat();
 
   const loadFullText = async () => {
     if (fullText || loadingFullText) return;
@@ -423,6 +425,15 @@ export function ExpandableArticleCard({ article }: { article: Article }) {
 
           {/* Action buttons */}
           <div className="flex gap-3 pt-2">
+            <button
+              onClick={() => openChat(article.id, article.title)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
+            >
+              <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              </svg>
+              Ask AI
+            </button>
             <a
               href={article.url}
               target="_blank"

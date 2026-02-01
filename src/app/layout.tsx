@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import { ChatProvider } from '@/components/ChatProvider';
 
 export const metadata: Metadata = {
-  title: 'News Aggregator | Daily Digest',
+  title: 'Cheeks Digest | AI-Powered News',
   description: 'AI-powered news aggregation for AI, SEO, and tech',
 };
 
@@ -13,7 +14,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        <ChatProvider>
+          {children}
+        </ChatProvider>
+      </body>
     </html>
   );
 }
