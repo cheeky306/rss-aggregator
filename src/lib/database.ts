@@ -125,10 +125,11 @@ export async function getArticles(options: {
   offset?: number;
   startDate?: Date;
   endDate?: Date;
-}): Promise<Article[]> {
+}): Promise<{ articles: Article[]; total: number }> {
+  // Build the base query for both data and count
   let query = supabase
     .from('articles')
-    .select('*')
+    .select('*', { count: 'exact' })
     .order('published_at', { ascending: false });
 
   if (options.category && options.category.trim() !== '') {
@@ -157,22 +158,19 @@ export async function getArticles(options: {
     query = query.lte('published_at', options.endDate.toISOString());
   }
 
-  if (options.limit) {
-    query = query.limit(options.limit);
-  }
+  // Apply pagination
+  const limit = options.limit || 20;
+  const offset = options.offset || 0;
+  query = query.range(offset, offset + limit - 1);
 
-  if (options.offset) {
-    query = query.range(options.offset, options.offset + (options.limit || 20) - 1);
-  }
-
-  const { data, error } = await query;
+  const { data, error, count } = await query;
 
   if (error) {
     console.error('Failed to fetch articles:', error);
-    return [];
+    return { articles: [], total: 0 };
   }
 
-  return data || [];
+  return { articles: data || [], total: count || 0 };
 }
 
 // Get source counts

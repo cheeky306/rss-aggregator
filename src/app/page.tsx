@@ -201,22 +201,41 @@ async function ArticleList({
   source,
   search,
   time,
+  page,
 }: {
   category?: string;
   source?: string;
   search?: string;
   time?: string;
+  page: number;
 }) {
   const { startDate, endDate } = getTimeRange(time);
+  const perPage = 20;
+  const offset = (page - 1) * perPage;
   
-  const articles = await getArticles({
+  const { articles, total } = await getArticles({
     category: category || undefined,
     source: source || undefined,
     search: search || undefined,
     startDate,
     endDate,
-    limit: 100,
+    limit: perPage,
+    offset,
   });
+
+  const totalPages = Math.ceil(total / perPage);
+
+  // Build URL params for pagination links
+  const buildPageUrl = (p: number) => {
+    const params = new URLSearchParams();
+    if (category) params.set('category', category);
+    if (source) params.set('source', source);
+    if (search) params.set('search', search);
+    if (time) params.set('time', time);
+    if (p > 1) params.set('page', p.toString());
+    const queryString = params.toString();
+    return queryString ? `/?${queryString}` : '/';
+  };
 
   if (articles.length === 0) {
     return (
@@ -229,23 +248,89 @@ async function ArticleList({
   }
 
   return (
-    <div className="bg-white rounded-xl border shadow-sm">
-      <div className="px-4 py-3 border-b bg-gray-50 rounded-t-xl flex items-center justify-between">
-        <div>
-          <span className="font-medium text-gray-900">{articles.length} articles</span>
-          {(category || source || search || time) && (
-            <a href="/" className="ml-3 text-sm text-blue-600 hover:underline">
-              Clear filters
+    <div>
+      <div className="bg-white rounded-xl border shadow-sm">
+        <div className="px-4 py-3 border-b bg-gray-50 rounded-t-xl flex items-center justify-between">
+          <div>
+            <span className="font-medium text-gray-900">{total} articles</span>
+            {(category || source || search || time) && (
+              <a href="/" className="ml-3 text-sm text-blue-600 hover:underline">
+                Clear filters
+              </a>
+            )}
+          </div>
+          <span className="text-xs text-gray-500">Click article to expand</span>
+        </div>
+        <div className="divide-y divide-gray-100 px-4">
+          {articles.map((article) => (
+            <ExpandableArticleCard key={article.id} article={article} />
+          ))}
+        </div>
+      </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="mt-6 flex items-center justify-center gap-2">
+          {/* Previous */}
+          {page > 1 ? (
+            <a
+              href={buildPageUrl(page - 1)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border rounded-lg hover:bg-gray-50"
+            >
+              ← Previous
             </a>
+          ) : (
+            <span className="px-4 py-2 text-sm font-medium text-gray-300 bg-gray-50 border rounded-lg cursor-not-allowed">
+              ← Previous
+            </span>
+          )}
+
+          {/* Page numbers */}
+          <div className="flex items-center gap-1">
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter(p => {
+                // Show first, last, current, and neighbors
+                if (p === 1 || p === totalPages) return true;
+                if (Math.abs(p - page) <= 1) return true;
+                return false;
+              })
+              .map((p, i, arr) => {
+                // Add ellipsis
+                const prev = arr[i - 1];
+                const showEllipsis = prev && p - prev > 1;
+                return (
+                  <span key={p} className="flex items-center">
+                    {showEllipsis && <span className="px-2 text-gray-400">...</span>}
+                    <a
+                      href={buildPageUrl(p)}
+                      className={`w-10 h-10 flex items-center justify-center text-sm font-medium rounded-lg ${
+                        p === page
+                          ? 'bg-purple-600 text-white'
+                          : 'bg-white border text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      {p}
+                    </a>
+                  </span>
+                );
+              })}
+          </div>
+
+          {/* Next */}
+          {page < totalPages ? (
+            <a
+              href={buildPageUrl(page + 1)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border rounded-lg hover:bg-gray-50"
+            >
+              Next →
+            </a>
+          ) : (
+            <span className="px-4 py-2 text-sm font-medium text-gray-300 bg-gray-50 border rounded-lg cursor-not-allowed">
+              Next →
+            </span>
           )}
         </div>
-        <span className="text-xs text-gray-500">Click article to expand</span>
-      </div>
-      <div className="divide-y divide-gray-100 px-4">
-        {articles.map((article) => (
-          <ExpandableArticleCard key={article.id} article={article} />
-        ))}
-      </div>
+      )}
     </div>
   );
 }
@@ -253,7 +338,7 @@ async function ArticleList({
 export default async function Dashboard({
   searchParams,
 }: {
-  searchParams: Promise<{ category?: string; source?: string; search?: string; time?: string }>;
+  searchParams: Promise<{ category?: string; source?: string; search?: string; time?: string; page?: string }>;
 }) {
   const params = await searchParams;
   
@@ -262,6 +347,7 @@ export default async function Dashboard({
   const source = params.source?.trim() || undefined;
   const search = params.search?.trim() || undefined;
   const time = params.time?.trim() || undefined;
+  const page = Math.max(1, parseInt(params.page || '1', 10));
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -353,7 +439,7 @@ export default async function Dashboard({
                 </div>
               }
             >
-              <ArticleList category={category} source={source} search={search} time={time} />
+              <ArticleList category={category} source={source} search={search} time={time} page={page} />
             </Suspense>
           </main>
         </div>
