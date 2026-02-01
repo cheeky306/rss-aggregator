@@ -1,7 +1,7 @@
 import { supabase, Article } from './supabase';
 import { ProcessedArticle } from './ai-briefing';
 
-// Save articles to database
+// Save articles to database (with AI summaries)
 export async function saveArticles(
   articles: ProcessedArticle[]
 ): Promise<{ saved: number; errors: number }> {
@@ -38,6 +38,43 @@ export async function saveArticles(
   return { saved, errors };
 }
 
+// Save articles WITHOUT AI processing (just basic info)
+export async function saveArticlesWithoutAI(
+  articles: { title: string; url: string; sourceName: string; category: string; publishedAt: Date; snippet: string }[]
+): Promise<{ saved: number; errors: number }> {
+  let saved = 0;
+  let errors = 0;
+
+  for (const article of articles) {
+    const dbArticle = {
+      title: article.title,
+      url: article.url,
+      source_name: article.sourceName,
+      category: article.category,
+      published_at: article.publishedAt.toISOString(),
+      full_text: null,
+      summary: article.snippet?.slice(0, 500) || null, // Use RSS snippet as basic summary
+      briefing: null,
+      tags: [],
+      content_angles: [],
+    };
+
+    const { error } = await supabase.from('articles').upsert(dbArticle, {
+      onConflict: 'url',
+      ignoreDuplicates: true,
+    });
+
+    if (error) {
+      console.error(`Failed to save article: ${article.title}`, error);
+      errors++;
+    } else {
+      saved++;
+    }
+  }
+
+  return { saved, errors };
+}
+
 // Check if URL already exists
 export async function articleExists(url: string): Promise<boolean> {
   const { data } = await supabase
@@ -47,6 +84,19 @@ export async function articleExists(url: string): Promise<boolean> {
     .single();
 
   return !!data;
+}
+
+// Get count of articles processed today
+export async function getArticleCountToday(): Promise<number> {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const { count } = await supabase
+    .from('articles')
+    .select('*', { count: 'exact', head: true })
+    .gte('created_at', today.toISOString());
+
+  return count || 0;
 }
 
 // Get articles with filters

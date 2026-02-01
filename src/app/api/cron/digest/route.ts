@@ -1,15 +1,32 @@
 import { NextResponse } from 'next/server';
 import { processFeeds, extractFullText } from '@/lib/rss-fetcher';
 import { generateBriefings, generateDigestIntro } from '@/lib/ai-briefing';
-import { saveArticles } from '@/lib/database';
+import { saveArticles, saveArticlesWithoutAI, getArticleCountToday, articleExists } from '@/lib/database';
 import { sendDigestEmail } from '@/lib/email';
+
+// ============================================
+// COST CONTROL SETTINGS
+// ============================================
+const DAILY_AI_LIMIT = 50;           // Max articles to process with AI per day
+const MAX_AI_PER_RUN = 20;           // Max articles to AI-summarize per run
+const PRIORITY_SOURCES = [           // Sources that always get AI summaries
+  'OpenAI Blog',
+  'Anthropic News',
+  'Google DeepMind Blog',
+  'Google Gemini',
+  'Google AI Blog',
+  'LangChain Blog',
+  'Artificial Analysis',
+  'MIT Technology Review',
+];
+const PRIORITY_CATEGORIES = ['agents', 'ai']; // Categories prioritized for AI
+// ============================================
 
 // Vercel Cron configuration
 export const runtime = 'nodejs';
 export const maxDuration = 300; // 5 minutes max
 
-// Verify cron secret to prevent unauthorized access
-// Allows: Vercel cron (with secret), or manual trigger with ?secret= param
+// Verify cron secret
 function verifyCronSecret(request: Request): boolean {
   const authHeader = request.headers.get('authorization');
   const cronSecret = process.env.CRON_SECRET;
@@ -21,12 +38,36 @@ function verifyCronSecret(request: Request): boolean {
     return true;
   }
 
-  // Allow either header auth (Vercel cron) or query param (manual trigger)
   return authHeader === `Bearer ${cronSecret}` || querySecret === cronSecret;
 }
 
+// Score articles for AI priority
+function scoreArticle(article: { sourceName: string; category: string; title: string }): number {
+  let score = 0;
+  
+  // Priority sources get highest score
+  if (PRIORITY_SOURCES.some(s => article.sourceName.includes(s))) {
+    score += 100;
+  }
+  
+  // Priority categories
+  if (PRIORITY_CATEGORIES.includes(article.category)) {
+    score += 50;
+  }
+  
+  // Boost for certain keywords in title
+  const boostKeywords = ['launch', 'announce', 'release', 'new', 'breakthrough', 'gpt', 'claude', 'gemini', 'agent', 'llm'];
+  const titleLower = article.title.toLowerCase();
+  for (const keyword of boostKeywords) {
+    if (titleLower.includes(keyword)) {
+      score += 10;
+    }
+  }
+  
+  return score;
+}
+
 export async function GET(request: Request) {
-  // Verify this is a legitimate cron call
   if (!verifyCronSecret(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -35,13 +76,13 @@ export async function GET(request: Request) {
   const log: string[] = [];
 
   try {
-    // Step 1: Fetch and process RSS feeds
-    log.push('Starting RSS aggregation...');
-    const articles = await processFeeds();
-    log.push(`Found ${articles.length} articles from last 24 hours`);
+    // Step 1: Fetch ALL articles from RSS feeds
+    log.push('Fetching all RSS feeds...');
+    const allArticles = await processFeeds();
+    log.push(`Found ${allArticles.length} articles from last 24 hours`);
 
-    if (articles.length === 0) {
-      log.push('No new articles found, skipping processing');
+    if (allArticles.length === 0) {
+      log.push('No new articles found');
       return NextResponse.json({
         success: true,
         message: 'No new articles',
@@ -50,36 +91,84 @@ export async function GET(request: Request) {
       });
     }
 
-    // Step 2: Extract full text for top articles (limit to save time/costs)
-    log.push('Extracting full text...');
-    const topArticles = articles.slice(0, 30); // Process top 30
-    
-    for (const article of topArticles) {
-      const fullText = await extractFullText(article.url);
-      article.fullText = fullText;
+    // Step 2: Filter out duplicates
+    log.push('Checking for duplicates...');
+    const newArticles = [];
+    for (const article of allArticles) {
+      const exists = await articleExists(article.url);
+      if (!exists) {
+        newArticles.push(article);
+      }
     }
-    log.push(`Extracted text from ${topArticles.length} articles`);
+    log.push(`${allArticles.length - newArticles.length} duplicates skipped, ${newArticles.length} new articles`);
 
-    // Step 3: Generate AI briefings
-    log.push('Generating AI briefings...');
-    const processedArticles = await generateBriefings(topArticles);
-    log.push(`Generated briefings for ${processedArticles.length} articles`);
+    if (newArticles.length === 0) {
+      log.push('No new articles to save');
+      return NextResponse.json({
+        success: true,
+        message: 'No new articles (all duplicates)',
+        log,
+        duration: Date.now() - startTime,
+      });
+    }
 
-    // Step 4: Save to database
-    log.push('Saving to database...');
-    const { saved, errors } = await saveArticles(processedArticles);
-    log.push(`Saved ${saved} articles (${errors} errors)`);
+    // Step 3: Check AI budget
+    const todayCount = await getArticleCountToday();
+    const remainingBudget = Math.max(0, DAILY_AI_LIMIT - todayCount);
+    const maxAI = Math.min(remainingBudget, MAX_AI_PER_RUN);
+    log.push(`AI budget: ${todayCount}/${DAILY_AI_LIMIT} used today, ${maxAI} available this run`);
 
-    // Step 5: Generate digest intro
-    log.push('Generating digest introduction...');
-    const digestIntro = await generateDigestIntro(processedArticles);
+    // Step 4: Score and sort articles for AI priority
+    const scoredArticles = newArticles.map(article => ({
+      article,
+      score: scoreArticle(article),
+    }));
+    scoredArticles.sort((a, b) => b.score - a.score);
 
-    // Step 6: Send email
+    // Step 5: Split into AI-worthy and non-AI articles
+    const aiArticles = scoredArticles.slice(0, maxAI).map(s => s.article);
+    const nonAiArticles = scoredArticles.slice(maxAI).map(s => s.article);
+
+    log.push(`Selected ${aiArticles.length} articles for AI summaries`);
+    log.push(`${nonAiArticles.length} articles will be saved without AI`);
+
+    // Step 6: Process AI articles (extract text + generate briefings)
+    let processedWithAI = [];
+    if (aiArticles.length > 0) {
+      log.push('Extracting full text for AI articles...');
+      for (const article of aiArticles) {
+        const fullText = await extractFullText(article.url);
+        article.fullText = fullText;
+      }
+
+      log.push('Generating AI briefings...');
+      processedWithAI = await generateBriefings(aiArticles);
+      log.push(`Generated ${processedWithAI.length} AI briefings`);
+
+      // Save AI-processed articles
+      const { saved: aiSaved, errors: aiErrors } = await saveArticles(processedWithAI);
+      log.push(`Saved ${aiSaved} AI articles (${aiErrors} errors)`);
+    }
+
+    // Step 7: Save non-AI articles (just basic info, no summaries)
+    if (nonAiArticles.length > 0) {
+      const { saved: basicSaved, errors: basicErrors } = await saveArticlesWithoutAI(nonAiArticles);
+      log.push(`Saved ${basicSaved} basic articles without AI (${basicErrors} errors)`);
+    }
+
+    // Step 8: Generate digest intro (only if we have AI articles)
+    let digestIntro = '';
+    if (processedWithAI.length > 0) {
+      log.push('Generating digest introduction...');
+      digestIntro = await generateDigestIntro(processedWithAI);
+    }
+
+    // Step 9: Send email (only AI-processed articles)
     const recipientEmail = process.env.DIGEST_RECIPIENT_EMAIL;
-    if (recipientEmail) {
+    if (recipientEmail && processedWithAI.length > 0) {
       log.push(`Sending digest email to ${recipientEmail}...`);
       const emailResult = await sendDigestEmail(
-        processedArticles,
+        processedWithAI,
         digestIntro,
         recipientEmail
       );
@@ -89,8 +178,8 @@ export async function GET(request: Request) {
       } else {
         log.push(`Email failed: ${emailResult.error}`);
       }
-    } else {
-      log.push('No recipient email configured, skipping email');
+    } else if (processedWithAI.length === 0) {
+      log.push('No AI articles to email');
     }
 
     const duration = Date.now() - startTime;
@@ -98,8 +187,14 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       success: true,
-      articlesProcessed: processedArticles.length,
-      articlesSaved: saved,
+      totalNewArticles: newArticles.length,
+      aiProcessed: processedWithAI.length,
+      savedWithoutAI: nonAiArticles.length,
+      dailyUsage: {
+        used: todayCount + processedWithAI.length,
+        limit: DAILY_AI_LIMIT,
+        remaining: DAILY_AI_LIMIT - todayCount - processedWithAI.length,
+      },
       duration,
       log,
     });
