@@ -114,17 +114,19 @@ export async function getArticles(options: {
     .select('*')
     .order('published_at', { ascending: false });
 
-  if (options.category) {
+  // Only filter if category has a non-empty value
+  if (options.category && options.category.trim() !== '') {
     query = query.eq('category', options.category);
   }
 
-  if (options.tags && options.tags.length > 0) {
+  if (options.tags && options.tags.length > 0 && options.tags[0] !== '') {
     query = query.overlaps('tags', options.tags);
   }
 
-  if (options.search) {
+  // Only search if search has a non-empty value
+  if (options.search && options.search.trim() !== '') {
     query = query.or(
-      `title.ilike.%${options.search}%,briefing.ilike.%${options.search}%`
+      `title.ilike.%${options.search}%,summary.ilike.%${options.search}%,briefing.ilike.%${options.search}%`
     );
   }
 
