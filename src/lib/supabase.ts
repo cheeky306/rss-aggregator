@@ -7,6 +7,7 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 export const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 // Types for our database
+// Fixed: id is required, not optional
 export interface Article {
   id: string;
   title: string;
