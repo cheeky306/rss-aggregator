@@ -65,6 +65,8 @@ export function AIPanel({ isOpen, onClose, articleId, articleTitle }: AIPanelPro
 
       if (data.reply) {
         setMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
+      } else if (data.error) {
+        setMessages(prev => [...prev, { role: 'assistant', content: `Error: ${data.error}` }]);
       } else {
         setMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, something went wrong.' }]);
       }

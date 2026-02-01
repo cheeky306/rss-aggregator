@@ -14,6 +14,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Message required' }, { status: 400 });
     }
 
+    if (!process.env.OPENAI_API_KEY) {
+      console.error('OPENAI_API_KEY not configured');
+      return NextResponse.json({ error: 'AI not configured' }, { status: 500 });
+    }
+
     // Build context from article if provided
     let articleContext = '';
     if (articleId) {
@@ -49,7 +54,7 @@ Tags: ${article.tags?.join(', ') || 'N/A'}
       ?.map(a => `- ${a.title} (${a.source_name}): ${a.summary || a.briefing || 'No summary'}`)
       .join('\n') || '';
 
-    const systemPrompt = `You are a helpful AI assistant integrated into Cheeks Digest, a news aggregator focused on AI, tech, SEO, and marketing news.
+    const systemPrompt = `You are a helpful AI assistant integrated into Tilly's Journal, a news aggregator focused on AI, tech, SEO, and marketing news.
 
 Your role is to:
 - Help users understand articles and news
@@ -95,8 +100,9 @@ Be concise, helpful, and conversational. Use markdown formatting when helpful.`;
     return NextResponse.json({ reply });
   } catch (error) {
     console.error('Chat error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
-      { error: 'Failed to generate response' },
+      { error: `Failed to generate response: ${errorMessage}` },
       { status: 500 }
     );
   }
