@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { processFeeds, extractFullText } from '@/lib/rss-fetcher';
-import { generateBriefings, generateDigestIntro } from '@/lib/ai-briefing';
+import { generateBriefings, generateDigestIntro, ProcessedArticle } from '@/lib/ai-briefing';
 import { saveArticles, saveArticlesWithoutAI, getArticleCountToday, articleExists } from '@/lib/database';
 import { sendDigestEmail } from '@/lib/email';
 
@@ -133,7 +133,7 @@ export async function GET(request: Request) {
     log.push(`${nonAiArticles.length} articles will be saved without AI`);
 
     // Step 6: Process AI articles (extract text + generate briefings)
-    let processedWithAI = [];
+    let processedWithAI: ProcessedArticle[] = [];
     if (aiArticles.length > 0) {
       log.push('Extracting full text for AI articles...');
       for (const article of aiArticles) {
