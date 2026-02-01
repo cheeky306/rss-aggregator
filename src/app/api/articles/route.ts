@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Default: list articles
-    const articles = await getArticles({
+    const { articles, total } = await getArticles({
       category: searchParams.get('category') || undefined,
       search: searchParams.get('search') || undefined,
       tags: searchParams.get('tags')?.split(',') || undefined,
@@ -35,6 +35,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       articles,
       count: articles.length,
+      total,
     });
   } catch (error) {
     console.error('API error:', error);
