@@ -137,12 +137,14 @@ function ArticleCard({ article }: ArticleCardProps) {
 
       {/* Body */}
       <div className="px-6 py-5">
-        {/* AI Summary */}
+        {/* AI Summary or RSS Snippet */}
         {article.summary && (
           <div className="mb-4">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">✨ AI Summary</span>
-            </div>
+            {article.briefing && (
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">✨ AI Summary</span>
+              </div>
+            )}
             <p className="text-gray-600 text-sm leading-relaxed">{article.summary}</p>
           </div>
         )}
