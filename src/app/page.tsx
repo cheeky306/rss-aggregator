@@ -1,19 +1,10 @@
-import Link from 'next/link';
 import { Suspense } from 'react';
 import { getArticles, getStats, getSourceCounts } from '@/lib/database';
 import { categoryLabels } from '@/lib/feeds';
-import { DeleteButton, BulkActions, RunDigestButton } from '@/components/DeleteButtons';
+import { BulkActions, RunDigestButton, ExpandableArticleCard } from '@/components/DeleteButtons';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
-
-const categoryColors: Record<string, string> = {
-  agents: 'bg-violet-100 text-violet-700 border-violet-200',
-  ai: 'bg-purple-100 text-purple-700 border-purple-200',
-  seo: 'bg-green-100 text-green-700 border-green-200',
-  tech: 'bg-blue-100 text-blue-700 border-blue-200',
-  marketing: 'bg-orange-100 text-orange-700 border-orange-200',
-};
 
 interface Article {
   id: string;
@@ -26,105 +17,7 @@ interface Article {
   briefing: string | null;
   tags: string[] | null;
   content_angles: string[] | null;
-}
-
-function getTimeAgo(date: Date): string {
-  const now = new Date();
-  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-  if (seconds < 60) return 'just now';
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`;
-  if (seconds < 604800) return `${Math.floor(seconds / 86400)}d`;
-  return date.toLocaleDateString();
-}
-
-function ArticleCard({ article }: { article: Article }) {
-  const colors = categoryColors[article.category] || categoryColors.tech;
-  const hasAI = !!article.briefing;
-  
-  return (
-    <div className="border-b border-gray-100 py-4 hover:bg-gray-50 transition-colors group">
-      <div className="flex gap-3">
-        <div className="flex-1 min-w-0">
-          {/* Title - links to detail page */}
-          <Link
-            href={`/article/${article.id}`}
-            className="font-medium text-gray-900 hover:text-blue-600 line-clamp-2 leading-snug block"
-          >
-            {article.title}
-          </Link>
-          
-          {/* Preview text */}
-          {article.summary && (
-            <p className="text-sm text-gray-500 mt-1 line-clamp-2">
-              {article.summary}
-            </p>
-          )}
-          
-          {/* Meta row */}
-          <div className="flex items-center gap-2 mt-2 text-xs">
-            <span className={`px-2 py-0.5 rounded border ${colors}`}>
-              {article.category}
-            </span>
-            <span className="text-gray-400">•</span>
-            <span className="text-gray-500 truncate">{article.source_name}</span>
-            <span className="text-gray-400">•</span>
-            <span className="text-gray-400">{getTimeAgo(new Date(article.published_at))}</span>
-            {hasAI && (
-              <>
-                <span className="text-gray-400">•</span>
-                <span className="text-purple-600 font-medium">✨ AI</span>
-              </>
-            )}
-          </div>
-        </div>
-        
-        {/* Actions */}
-        <div className="flex-shrink-0 flex items-start gap-1">
-          <a
-            href={article.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="p-2 text-gray-300 hover:text-blue-500"
-            title="Open article"
-          >
-            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/>
-            </svg>
-          </a>
-          <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-            <DeleteButton id={article.id} title={article.title} />
-          </div>
-        </div>
-      </div>
-      
-      {/* AI Briefing (expandable) */}
-      {article.briefing && (
-        <details className="mt-3">
-          <summary className="text-xs text-purple-600 cursor-pointer hover:text-purple-800">
-            View AI Briefing
-          </summary>
-          <div className="mt-2 p-3 bg-purple-50 rounded-lg text-sm text-gray-700">
-            {article.briefing}
-          </div>
-        </details>
-      )}
-      
-      {/* Content Ideas */}
-      {article.content_angles && article.content_angles.length > 0 && (
-        <details className="mt-2">
-          <summary className="text-xs text-amber-600 cursor-pointer hover:text-amber-800">
-            💡 {article.content_angles.length} Content Ideas
-          </summary>
-          <ul className="mt-2 p-3 bg-amber-50 rounded-lg text-sm space-y-1">
-            {article.content_angles.map((angle, i) => (
-              <li key={i} className="text-amber-900">• {angle}</li>
-            ))}
-          </ul>
-        </details>
-      )}
-    </div>
-  );
+  full_text: string | null;
 }
 
 async function Sidebar({ 
@@ -338,17 +231,20 @@ async function ArticleList({
 
   return (
     <div className="bg-white rounded-xl border shadow-sm">
-      <div className="px-4 py-3 border-b bg-gray-50 rounded-t-xl">
-        <span className="font-medium text-gray-900">{articles.length} articles</span>
-        {(category || source || search) && (
-          <a href="/" className="ml-3 text-sm text-blue-600 hover:underline">
-            Clear filters
-          </a>
-        )}
+      <div className="px-4 py-3 border-b bg-gray-50 rounded-t-xl flex items-center justify-between">
+        <div>
+          <span className="font-medium text-gray-900">{articles.length} articles</span>
+          {(category || source || search || time) && (
+            <a href="/" className="ml-3 text-sm text-blue-600 hover:underline">
+              Clear filters
+            </a>
+          )}
+        </div>
+        <span className="text-xs text-gray-500">Click article to expand</span>
       </div>
       <div className="divide-y divide-gray-100 px-4">
         {articles.map((article) => (
-          <ArticleCard key={article.id} article={article} />
+          <ExpandableArticleCard key={article.id} article={article} />
         ))}
       </div>
     </div>
@@ -396,10 +292,11 @@ export default async function Dashboard({
               {/* Preserve other filters */}
               {category && <input type="hidden" name="category" value={category} />}
               {source && <input type="hidden" name="source" value={source} />}
+              {time && <input type="hidden" name="time" value={time} />}
             </form>
             
             <div className="text-sm text-gray-500">
-              Updated daily at 6am UTC
+              Updated every 12 hours
             </div>
           </div>
         </div>
