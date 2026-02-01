@@ -1,6 +1,22 @@
 import { supabase, Article } from './supabase';
 import { ProcessedArticle } from './ai-briefing';
 
+// Get single article by ID
+export async function getArticleById(id: string): Promise<Article | null> {
+  const { data, error } = await supabase
+    .from('articles')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (error || !data) {
+    console.error('Failed to fetch article:', error);
+    return null;
+  }
+
+  return data;
+}
+
 // Save articles to database (with AI summaries)
 export async function saveArticles(
   articles: ProcessedArticle[]

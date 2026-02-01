@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { Suspense } from 'react';
 import { getArticles, getStats, getSourceCounts } from '@/lib/database';
 import { categoryLabels } from '@/lib/feeds';
@@ -45,15 +46,13 @@ function ArticleCard({ article }: { article: Article }) {
     <div className="border-b border-gray-100 py-4 hover:bg-gray-50 transition-colors group">
       <div className="flex gap-3">
         <div className="flex-1 min-w-0">
-          {/* Title */}
-          <a
-            href={article.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-medium text-gray-900 hover:text-blue-600 line-clamp-2 leading-snug"
+          {/* Title - links to detail page */}
+          <Link
+            href={`/article/${article.id}`}
+            className="font-medium text-gray-900 hover:text-blue-600 line-clamp-2 leading-snug block"
           >
             {article.title}
-          </a>
+          </Link>
           
           {/* Preview text */}
           {article.summary && (
