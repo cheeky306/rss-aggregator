@@ -14,7 +14,7 @@ export async function POST(request: Request) {
     if (password === correctPassword) {
       // Set auth cookie
       const response = NextResponse.json({ success: true });
-      response.cookies.set('cheeks-auth', 'authenticated', {
+      response.cookies.set('tilly-auth', 'authenticated', {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
@@ -34,6 +34,6 @@ export async function POST(request: Request) {
 export async function DELETE() {
   // Logout - clear the cookie
   const response = NextResponse.json({ success: true });
-  response.cookies.delete('cheeks-auth');
+  response.cookies.delete('tilly-auth');
   return response;
 }

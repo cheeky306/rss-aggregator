@@ -13,7 +13,7 @@ export function middleware(request: NextRequest) {
   }
 
   // Check for password auth cookie
-  const authCookie = request.cookies.get('cheeks-auth')?.value;
+  const authCookie = request.cookies.get('tilly-auth')?.value;
   
   if (authCookie !== 'authenticated') {
     return NextResponse.redirect(new URL('/login', request.url));

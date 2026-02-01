@@ -3,8 +3,8 @@ import './globals.css';
 import { AIProvider } from '@/components/AIProvider';
 
 export const metadata: Metadata = {
-  title: 'Cheeks Digest | AI-Powered News',
-  description: 'AI-powered news aggregation for AI, SEO, and tech',
+  title: "Tilly's Journal | AI Research",
+  description: 'Your personal AI research journal',
 };
 
 export default function RootLayout({

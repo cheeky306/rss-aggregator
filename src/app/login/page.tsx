@@ -40,8 +40,8 @@ export default function LoginPage() {
         <div className="bg-white rounded-2xl shadow-xl p-8">
           {/* Logo */}
           <div className="text-center mb-8">
-            <span className="text-6xl">🍑</span>
-            <h1 className="text-2xl font-bold text-gray-900 mt-4">Cheeks Digest</h1>
+            <span className="text-6xl">📓</span>
+            <h1 className="text-2xl font-bold text-gray-900 mt-4">Tilly's Journal</h1>
             <p className="text-gray-500 mt-1">Enter your password to continue</p>
           </div>
 
@@ -85,7 +85,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center text-gray-400 text-sm mt-6">
-          Your personal AI news digest
+          Your personal AI research journal
         </p>
       </div>
     </div>
