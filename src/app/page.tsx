@@ -130,10 +130,12 @@ function ArticleCard({ article }: { article: Article }) {
 
 async function Sidebar({ 
   currentSource, 
-  currentCategory 
+  currentCategory,
+  currentTime 
 }: { 
   currentSource?: string;
   currentCategory?: string;
+  currentTime?: string;
 }) {
   const stats = await getStats();
   const sources = await getSourceCounts();
@@ -155,6 +157,53 @@ async function Sidebar({
           <div className="text-sm text-gray-500">Total Articles</div>
           <div className="mt-2 text-sm">
             <span className="text-green-600 font-medium">{stats.todayArticles} today</span>
+          </div>
+        </div>
+        
+        {/* Time Filters */}
+        <div className="bg-white rounded-xl p-4 shadow-sm border">
+          <h3 className="font-semibold text-gray-900 mb-3">Time</h3>
+          <div className="space-y-1">
+            <a
+              href="/"
+              className={`block px-3 py-2 rounded-lg text-sm transition-colors ${
+                !currentTime ? 'bg-gray-100 font-medium' : 'hover:bg-gray-50'
+              }`}
+            >
+              All Time
+            </a>
+            <a
+              href="/?time=today"
+              className={`block px-3 py-2 rounded-lg text-sm transition-colors ${
+                currentTime === 'today' ? 'bg-gray-100 font-medium' : 'hover:bg-gray-50'
+              }`}
+            >
+              📅 Today
+            </a>
+            <a
+              href="/?time=yesterday"
+              className={`block px-3 py-2 rounded-lg text-sm transition-colors ${
+                currentTime === 'yesterday' ? 'bg-gray-100 font-medium' : 'hover:bg-gray-50'
+              }`}
+            >
+              🕙 Yesterday
+            </a>
+            <a
+              href="/?time=week"
+              className={`block px-3 py-2 rounded-lg text-sm transition-colors ${
+                currentTime === 'week' ? 'bg-gray-100 font-medium' : 'hover:bg-gray-50'
+              }`}
+            >
+              📆 This Week
+            </a>
+            <a
+              href="/?time=month"
+              className={`block px-3 py-2 rounded-lg text-sm transition-colors ${
+                currentTime === 'month' ? 'bg-gray-100 font-medium' : 'hover:bg-gray-50'
+              }`}
+            >
+              🗓️ This Month
+            </a>
           </div>
         </div>
         
@@ -232,19 +281,54 @@ async function Sidebar({
   );
 }
 
+function getTimeRange(time?: string): { startDate?: Date; endDate?: Date } {
+  if (!time) return {};
+  
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  
+  switch (time) {
+    case 'today':
+      return { startDate: today };
+    case 'yesterday': {
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      return { startDate: yesterday, endDate: today };
+    }
+    case 'week': {
+      const weekAgo = new Date(today);
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      return { startDate: weekAgo };
+    }
+    case 'month': {
+      const monthAgo = new Date(today);
+      monthAgo.setMonth(monthAgo.getMonth() - 1);
+      return { startDate: monthAgo };
+    }
+    default:
+      return {};
+  }
+}
+
 async function ArticleList({
   category,
   source,
   search,
+  time,
 }: {
   category?: string;
   source?: string;
   search?: string;
+  time?: string;
 }) {
+  const { startDate, endDate } = getTimeRange(time);
+  
   const articles = await getArticles({
     category: category || undefined,
     source: source || undefined,
     search: search || undefined,
+    startDate,
+    endDate,
     limit: 100,
   });
 
@@ -280,7 +364,7 @@ async function ArticleList({
 export default async function Dashboard({
   searchParams,
 }: {
-  searchParams: Promise<{ category?: string; source?: string; search?: string }>;
+  searchParams: Promise<{ category?: string; source?: string; search?: string; time?: string }>;
 }) {
   const params = await searchParams;
   
@@ -288,6 +372,7 @@ export default async function Dashboard({
   const category = params.category?.trim() || undefined;
   const source = params.source?.trim() || undefined;
   const search = params.search?.trim() || undefined;
+  const time = params.time?.trim() || undefined;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -331,31 +416,37 @@ export default async function Dashboard({
         <div className="flex gap-6">
           {/* Sidebar */}
           <Suspense fallback={<div className="w-64 flex-shrink-0" />}>
-            <Sidebar currentSource={source} currentCategory={category} />
+            <Sidebar currentSource={source} currentCategory={category} currentTime={time} />
           </Suspense>
           
           {/* Content */}
           <main className="flex-1 min-w-0">
             {/* Active filters */}
-            {(category || source || search) && (
+            {(category || source || search || time) && (
               <div className="mb-4 flex items-center gap-2 flex-wrap">
                 <span className="text-sm text-gray-500">Filters:</span>
+                {time && (
+                  <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">
+                    {time === 'today' ? 'Today' : time === 'yesterday' ? 'Yesterday' : time === 'week' ? 'This Week' : 'This Month'}
+                    <a href={`/?${category ? `category=${category}` : ''}${source ? `&source=${encodeURIComponent(source)}` : ''}${search ? `&search=${encodeURIComponent(search)}` : ''}`} className="ml-2 hover:text-green-900">×</a>
+                  </span>
+                )}
                 {category && (
                   <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm">
                     {categoryLabels[category as keyof typeof categoryLabels] || category}
-                    <a href={`/?${source ? `source=${encodeURIComponent(source)}` : ''}${search ? `&search=${encodeURIComponent(search)}` : ''}`} className="ml-2 hover:text-purple-900">×</a>
+                    <a href={`/?${time ? `time=${time}` : ''}${source ? `&source=${encodeURIComponent(source)}` : ''}${search ? `&search=${encodeURIComponent(search)}` : ''}`} className="ml-2 hover:text-purple-900">×</a>
                   </span>
                 )}
                 {source && (
                   <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
                     {source}
-                    <a href={`/?${category ? `category=${category}` : ''}${search ? `&search=${encodeURIComponent(search)}` : ''}`} className="ml-2 hover:text-blue-900">×</a>
+                    <a href={`/?${time ? `time=${time}` : ''}${category ? `&category=${category}` : ''}${search ? `&search=${encodeURIComponent(search)}` : ''}`} className="ml-2 hover:text-blue-900">×</a>
                   </span>
                 )}
                 {search && (
                   <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
                     &quot;{search}&quot;
-                    <a href={`/?${category ? `category=${category}` : ''}${source ? `&source=${encodeURIComponent(source)}` : ''}`} className="ml-2 hover:text-gray-900">×</a>
+                    <a href={`/?${time ? `time=${time}` : ''}${category ? `&category=${category}` : ''}${source ? `&source=${encodeURIComponent(source)}` : ''}`} className="ml-2 hover:text-gray-900">×</a>
                   </span>
                 )}
               </div>
@@ -372,7 +463,7 @@ export default async function Dashboard({
                 </div>
               }
             >
-              <ArticleList category={category} source={source} search={search} />
+              <ArticleList category={category} source={source} search={search} time={time} />
             </Suspense>
           </main>
         </div>
