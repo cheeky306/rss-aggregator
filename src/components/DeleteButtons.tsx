@@ -220,6 +220,88 @@ function getTimeAgo(date: Date): string {
   return date.toLocaleDateString();
 }
 
+// Format plain text into readable HTML
+function formatArticleText(text: string): string {
+  // If it already has HTML tags, return as-is
+  if (/<[a-z][\s\S]*>/i.test(text)) {
+    return text;
+  }
+
+  // Split into lines and process
+  const lines = text.split('\n').filter(line => line.trim());
+  let html = '';
+  let inList = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    
+    // Skip empty lines
+    if (!line) continue;
+
+    // Check for list items (lines starting with - or • or *)
+    if (/^[-•*]\s/.test(line)) {
+      if (!inList) {
+        html += '<ul class="list-disc pl-5 my-3 space-y-1">';
+        inList = true;
+      }
+      html += `<li>${line.replace(/^[-•*]\s/, '')}</li>`;
+      continue;
+    } else if (inList) {
+      html += '</ul>';
+      inList = false;
+    }
+
+    // Check for numbered list items
+    if (/^\d+[.)\s]/.test(line)) {
+      if (!inList) {
+        html += '<ol class="list-decimal pl-5 my-3 space-y-1">';
+        inList = true;
+      }
+      html += `<li>${line.replace(/^\d+[.)\s]+/, '')}</li>`;
+      continue;
+    }
+
+    // Check if line looks like a heading (short, no period at end, possibly all caps)
+    const isHeading = (
+      line.length < 80 && 
+      !line.endsWith('.') && 
+      !line.endsWith(',') &&
+      (line === line.toUpperCase() || /^[A-Z][^.]*$/.test(line))
+    );
+
+    // Check for "Read more" type links - make them smaller
+    if (/^Read more$/i.test(line) || /^Continue reading$/i.test(line)) {
+      continue; // Skip these
+    }
+
+    // Check if it's a short line that might be a subheading or label
+    if (line.length < 60 && !line.includes('.') && i < lines.length - 1) {
+      const nextLine = lines[i + 1]?.trim() || '';
+      // If next line is longer, this might be a heading
+      if (nextLine.length > line.length * 1.5) {
+        html += `<h3 class="text-lg font-semibold text-gray-900 mt-6 mb-2">${line}</h3>`;
+        continue;
+      }
+    }
+
+    // Check for section headers (all caps or title case short lines)
+    if (isHeading && line.length > 3) {
+      html += `<h3 class="text-lg font-semibold text-gray-900 mt-6 mb-2">${line}</h3>`;
+      continue;
+    }
+
+    // Regular paragraph
+    html += `<p class="mb-4 leading-relaxed">${line}</p>`;
+  }
+
+  // Close any open list
+  if (inList) {
+    html += '</ul>';
+  }
+
+  return html || `<p class="text-gray-500 italic">No content available</p>`;
+}
+
 export function ExpandableArticleCard({ article }: { article: Article }) {
   const [expanded, setExpanded] = useState(false);
   const [fullText, setFullText] = useState<string | null>(null);
@@ -415,10 +497,12 @@ export function ExpandableArticleCard({ article }: { article: Article }) {
                 </div>
               )}
               {fullText && (
-                <div 
-                  className="prose prose-sm max-w-none text-gray-700"
-                  dangerouslySetInnerHTML={{ __html: fullText }}
-                />
+                <article className="prose prose-sm max-w-none">
+                  <div 
+                    className="text-gray-700"
+                    dangerouslySetInnerHTML={{ __html: formatArticleText(fullText) }}
+                  />
+                </article>
               )}
             </div>
           </details>
