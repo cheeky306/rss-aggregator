@@ -259,7 +259,7 @@ async function ArticleList({
 function FilterForm({ params }: { params: { category?: string; search?: string; tags?: string } }) {
   return (
     <div className="bg-white p-5 rounded-xl shadow-sm border mb-8">
-      <form method="GET" className="flex flex-wrap gap-4">
+      <form action="/" method="GET" className="flex flex-wrap gap-4">
         <div className="flex-1 min-w-[250px]">
           <label className="block text-xs font-medium text-gray-500 mb-1.5">Search</label>
           <input
