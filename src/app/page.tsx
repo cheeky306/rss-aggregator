@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import { getArticles, getStats, getSourceCounts } from '@/lib/database';
 import { categoryLabels } from '@/lib/feeds';
+import { DeleteButton, BulkActions } from '@/components/DeleteButtons';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -41,7 +42,7 @@ function ArticleCard({ article }: { article: Article }) {
   const hasAI = !!article.briefing;
   
   return (
-    <div className="border-b border-gray-100 py-4 hover:bg-gray-50 transition-colors">
+    <div className="border-b border-gray-100 py-4 hover:bg-gray-50 transition-colors group">
       <div className="flex gap-3">
         <div className="flex-1 min-w-0">
           {/* Title */}
@@ -79,17 +80,23 @@ function ArticleCard({ article }: { article: Article }) {
           </div>
         </div>
         
-        {/* External link */}
-        <a
-          href={article.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex-shrink-0 p-2 text-gray-300 hover:text-blue-500"
-        >
-          <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/>
-          </svg>
-        </a>
+        {/* Actions */}
+        <div className="flex-shrink-0 flex items-start gap-1">
+          <a
+            href={article.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="p-2 text-gray-300 hover:text-blue-500"
+            title="Open article"
+          >
+            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/>
+            </svg>
+          </a>
+          <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+            <DeleteButton id={article.id} title={article.title} />
+          </div>
+        </div>
       </div>
       
       {/* AI Briefing (expandable) */}
@@ -183,7 +190,7 @@ async function Sidebar({
         {/* Sources */}
         <div className="bg-white rounded-xl p-4 shadow-sm border">
           <h3 className="font-semibold text-gray-900 mb-3">Sources</h3>
-          <div className="space-y-1 max-h-80 overflow-y-auto">
+          <div className="space-y-1 max-h-64 overflow-y-auto">
             <a
               href="/"
               className={`block px-3 py-2 rounded-lg text-sm transition-colors ${
@@ -209,6 +216,9 @@ async function Sidebar({
               ))}
           </div>
         </div>
+
+        {/* Bulk Actions */}
+        <BulkActions />
         
         {/* Run Digest */}
         <a
@@ -344,7 +354,7 @@ export default async function Dashboard({
                 )}
                 {search && (
                   <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
-                    "{search}"
+                    &quot;{search}&quot;
                     <a href={`/?${category ? `category=${category}` : ''}${source ? `&source=${encodeURIComponent(source)}` : ''}`} className="ml-2 hover:text-gray-900">×</a>
                   </span>
                 )}
