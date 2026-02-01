@@ -147,6 +147,11 @@ export const feedSources: FeedSource[] = [
     category: 'ai',
   },
   {
+    name: 'Hugging Face Blog',
+    url: 'https://huggingface.co/blog/feed.xml',
+    category: 'ai',
+  },
+  {
     name: 'Mistral AI Blog',
     url: 'https://mistral.ai/feed.xml',
     category: 'ai',
