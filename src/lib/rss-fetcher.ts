@@ -1,6 +1,7 @@
 import Parser from 'rss-parser';
 import { extract } from '@extractus/article-extractor';
 import { feedSources, FeedSource } from './feeds';
+import { fetchScrapedSources } from './scrapers';
 
 const parser = new Parser({
   timeout: 10000,
@@ -53,10 +54,16 @@ export async function fetchAllFeeds(): Promise<RawArticle[]> {
     }
   });
 
+  // Also fetch from custom scrapers
+  console.log('Fetching from custom scrapers...');
+  const scrapedArticles = await fetchScrapedSources();
+  console.log(`Scraped ${scrapedArticles.length} articles from custom sources`);
+  articles.push(...scrapedArticles);
+
   return articles;
 }
 
-// Filter to last 24 hours
+// Filter to last 24 hours (with option to include scraped articles that don't have dates)
 export function filterRecentArticles(
   articles: RawArticle[],
   hoursAgo: number = 24
@@ -64,7 +71,13 @@ export function filterRecentArticles(
   const cutoff = new Date();
   cutoff.setHours(cutoff.getHours() - hoursAgo);
 
-  return articles.filter((article) => article.publishedAt >= cutoff);
+  return articles.filter((article) => {
+    // Include scraped articles (they have current date as placeholder)
+    // or articles within the time window
+    const isRecent = article.publishedAt >= cutoff;
+    const isScraped = article.sourceName === 'Artificial Analysis';
+    return isRecent || isScraped;
+  });
 }
 
 // Deduplicate by URL
