@@ -125,6 +125,8 @@ export async function getArticles(options: {
   offset?: number;
   startDate?: Date;
   endDate?: Date;
+  favorites?: boolean;
+  readLater?: boolean;
 }): Promise<{ articles: Article[]; total: number }> {
   // Build the base query for both data and count
   let query = supabase
@@ -156,6 +158,14 @@ export async function getArticles(options: {
 
   if (options.endDate) {
     query = query.lte('published_at', options.endDate.toISOString());
+  }
+
+  if (options.favorites) {
+    query = query.eq('is_favorite', true);
+  }
+
+  if (options.readLater) {
+    query = query.eq('is_read_later', true);
   }
 
   // Apply pagination
@@ -208,6 +218,8 @@ export async function getTagCounts(): Promise<Record<string, number>> {
 export async function getStats(): Promise<{
   totalArticles: number;
   todayArticles: number;
+  favoriteCount: number;
+  readLaterCount: number;
   byCategory: Record<string, number>;
 }> {
   const today = new Date();
@@ -222,6 +234,16 @@ export async function getStats(): Promise<{
     .select('*', { count: 'exact', head: true })
     .gte('published_at', today.toISOString());
 
+  const { count: favoriteCount } = await supabase
+    .from('articles')
+    .select('*', { count: 'exact', head: true })
+    .eq('is_favorite', true);
+
+  const { count: readLaterCount } = await supabase
+    .from('articles')
+    .select('*', { count: 'exact', head: true })
+    .eq('is_read_later', true);
+
   const { data: categoryData } = await supabase
     .from('articles')
     .select('category');
@@ -234,6 +256,8 @@ export async function getStats(): Promise<{
   return {
     totalArticles: totalArticles || 0,
     todayArticles: todayArticles || 0,
+    favoriteCount: favoriteCount || 0,
+    readLaterCount: readLaterCount || 0,
     byCategory,
   };
 }

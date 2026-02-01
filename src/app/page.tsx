@@ -18,16 +18,20 @@ interface Article {
   briefing: string | null;
   tags: string[] | null;
   content_angles: string[] | null;
+  is_favorite?: boolean;
+  is_read_later?: boolean;
 }
 
 async function Sidebar({ 
   currentSource, 
   currentCategory,
-  currentTime 
+  currentTime,
+  currentView,
 }: { 
   currentSource?: string;
   currentCategory?: string;
   currentTime?: string;
+  currentView?: string;
 }) {
   const stats = await getStats();
   const sources = await getSourceCounts();
@@ -49,6 +53,41 @@ async function Sidebar({
           <div className="text-sm text-gray-500">Total Articles</div>
           <div className="mt-2 text-sm">
             <span className="text-green-600 font-medium">{stats.todayArticles} today</span>
+          </div>
+        </div>
+
+        {/* Saved */}
+        <div className="bg-white rounded-xl p-4 shadow-sm border">
+          <h3 className="font-semibold text-gray-900 mb-3">Saved</h3>
+          <div className="space-y-1">
+            <a
+              href="/?view=favorites"
+              className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${
+                currentView === 'favorites' ? 'bg-red-50 text-red-700 font-medium' : 'hover:bg-gray-50'
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                <svg width="16" height="16" fill={currentView === 'favorites' ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="text-red-500">
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                </svg>
+                Favorites
+              </span>
+              <span className="text-gray-400">{stats.favoriteCount}</span>
+            </a>
+            <a
+              href="/?view=read-later"
+              className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${
+                currentView === 'read-later' ? 'bg-blue-50 text-blue-700 font-medium' : 'hover:bg-gray-50'
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                <svg width="16" height="16" fill={currentView === 'read-later' ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="text-blue-500">
+                  <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+                </svg>
+                Read Later
+              </span>
+              <span className="text-gray-400">{stats.readLaterCount}</span>
+            </a>
           </div>
         </div>
         
@@ -204,6 +243,7 @@ async function ArticleList({
   time,
   page,
   perPage,
+  view,
 }: {
   category?: string;
   source?: string;
@@ -211,6 +251,7 @@ async function ArticleList({
   time?: string;
   page: number;
   perPage: number;
+  view?: string;
 }) {
   const { startDate, endDate } = getTimeRange(time);
   const offset = (page - 1) * perPage;
@@ -223,6 +264,8 @@ async function ArticleList({
     endDate,
     limit: perPage,
     offset,
+    favorites: view === 'favorites',
+    readLater: view === 'read-later',
   });
 
   const totalPages = Math.ceil(total / perPage);
@@ -234,6 +277,7 @@ async function ArticleList({
     if (source) params.set('source', source);
     if (search) params.set('search', search);
     if (time) params.set('time', time);
+    if (view) params.set('view', view);
     const pp = newPerPage || perPage;
     if (pp !== 20) params.set('perPage', pp.toString());
     if (p > 1) params.set('page', p.toString());
@@ -257,7 +301,7 @@ async function ArticleList({
         <div className="px-4 py-3 border-b bg-gray-50 rounded-t-xl flex items-center justify-between">
           <div>
             <span className="font-medium text-gray-900">{total} articles</span>
-            {(category || source || search || time) && (
+            {(category || source || search || time || view) && (
               <a href="/" className="ml-3 text-sm text-blue-600 hover:underline">
                 Clear filters
               </a>
@@ -360,7 +404,7 @@ async function ArticleList({
 export default async function Dashboard({
   searchParams,
 }: {
-  searchParams: Promise<{ category?: string; source?: string; search?: string; time?: string; page?: string; perPage?: string }>;
+  searchParams: Promise<{ category?: string; source?: string; search?: string; time?: string; page?: string; perPage?: string; view?: string }>;
 }) {
   const params = await searchParams;
   
@@ -369,6 +413,7 @@ export default async function Dashboard({
   const source = params.source?.trim() || undefined;
   const search = params.search?.trim() || undefined;
   const time = params.time?.trim() || undefined;
+  const view = params.view?.trim() || undefined;
   const page = Math.max(1, parseInt(params.page || '1', 10));
   const perPage = [20, 50, 100].includes(parseInt(params.perPage || '20', 10)) 
     ? parseInt(params.perPage || '20', 10) 
@@ -418,15 +463,27 @@ export default async function Dashboard({
         <div className="flex gap-6">
           {/* Sidebar */}
           <Suspense fallback={<div className="w-64 flex-shrink-0" />}>
-            <Sidebar currentSource={source} currentCategory={category} currentTime={time} />
+            <Sidebar currentSource={source} currentCategory={category} currentTime={time} currentView={view} />
           </Suspense>
           
           {/* Content */}
           <main className="flex-1 min-w-0">
             {/* Active filters */}
-            {(category || source || search || time) && (
+            {(category || source || search || time || view) && (
               <div className="mb-4 flex items-center gap-2 flex-wrap">
                 <span className="text-sm text-gray-500">Filters:</span>
+                {view === 'favorites' && (
+                  <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm flex items-center gap-1">
+                    ❤️ Favorites
+                    <a href="/" className="ml-1 hover:text-red-900">×</a>
+                  </span>
+                )}
+                {view === 'read-later' && (
+                  <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm flex items-center gap-1">
+                    🔖 Read Later
+                    <a href="/" className="ml-1 hover:text-blue-900">×</a>
+                  </span>
+                )}
                 {time && (
                   <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">
                     {time === 'today' ? 'Today' : time === 'yesterday' ? 'Yesterday' : time === 'week' ? 'This Week' : 'This Month'}
@@ -465,7 +522,7 @@ export default async function Dashboard({
                 </div>
               }
             >
-              <ArticleList category={category} source={source} search={search} time={time} page={page} perPage={perPage} />
+              <ArticleList category={category} source={source} search={search} time={time} page={page} perPage={perPage} view={view} />
             </Suspense>
           </main>
         </div>

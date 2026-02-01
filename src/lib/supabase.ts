@@ -20,6 +20,8 @@ export interface Article {
   briefing: string | null;
   tags: string[] | null;
   content_angles: string[] | null;
+  is_favorite?: boolean;
+  is_read_later?: boolean;
   created_at?: string;
 }
 

@@ -200,6 +200,8 @@ interface Article {
   briefing: string | null;
   tags: string[] | null;
   content_angles: string[] | null;
+  is_favorite?: boolean;
+  is_read_later?: boolean;
 }
 
 const categoryColors: Record<string, string> = {
@@ -307,10 +309,46 @@ export function ExpandableArticleCard({ article }: { article: Article }) {
   const [fullText, setFullText] = useState<string | null>(null);
   const [loadingFullText, setLoadingFullText] = useState(false);
   const [fullTextError, setFullTextError] = useState<string | null>(null);
+  const [isFavorite, setIsFavorite] = useState(article.is_favorite || false);
+  const [isReadLater, setIsReadLater] = useState(article.is_read_later || false);
   const colors = categoryColors[article.category] || categoryColors.tech;
   const hasAI = !!article.briefing;
   const router = useRouter();
   const { openAI } = useAI();
+
+  const toggleFavorite = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      const res = await fetch('/api/articles/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: article.id, action: 'toggle-favorite' }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setIsFavorite(data.is_favorite);
+      }
+    } catch (e) {
+      console.error('Failed to toggle favorite');
+    }
+  };
+
+  const toggleReadLater = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      const res = await fetch('/api/articles/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: article.id, action: 'toggle-read-later' }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setIsReadLater(data.is_read_later);
+      }
+    } catch (e) {
+      console.error('Failed to toggle read later');
+    }
+  };
 
   const loadFullText = async () => {
     if (fullText || loadingFullText) return;
@@ -374,7 +412,27 @@ export function ExpandableArticleCard({ article }: { article: Article }) {
           </div>
           
           {/* Actions */}
-          <div className="flex-shrink-0 flex items-start gap-1">
+          <div className="flex-shrink-0 flex items-start gap-0.5">
+            {/* Favorite button */}
+            <button
+              onClick={toggleFavorite}
+              className={`p-2 transition-colors ${isFavorite ? 'text-red-500' : 'text-gray-300 hover:text-red-400'}`}
+              title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+            >
+              <svg width="16" height="16" fill={isFavorite ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+              </svg>
+            </button>
+            {/* Read Later button */}
+            <button
+              onClick={toggleReadLater}
+              className={`p-2 transition-colors ${isReadLater ? 'text-blue-500' : 'text-gray-300 hover:text-blue-400'}`}
+              title={isReadLater ? 'Remove from read later' : 'Save for later'}
+            >
+              <svg width="16" height="16" fill={isReadLater ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+              </svg>
+            </button>
             {/* Expand/Collapse button */}
             <button
               onClick={() => setExpanded(!expanded)}
