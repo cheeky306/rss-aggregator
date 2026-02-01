@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import { getArticles, getStats, getSourceCounts } from '@/lib/database';
 import { categoryLabels } from '@/lib/feeds';
-import { DeleteButton, BulkActions } from '@/components/DeleteButtons';
+import { DeleteButton, BulkActions, RunDigestButton } from '@/components/DeleteButtons';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -270,12 +270,7 @@ async function Sidebar({
         <BulkActions />
         
         {/* Run Digest */}
-        <a
-          href={`/api/cron/digest?secret=${process.env.CRON_SECRET}`}
-          className="block w-full px-4 py-3 bg-blue-600 text-white text-center rounded-xl hover:bg-blue-700 transition-colors font-medium"
-        >
-          🔄 Run Digest
-        </a>
+        <RunDigestButton cronSecret={process.env.CRON_SECRET || ''} />
       </div>
     </aside>
   );

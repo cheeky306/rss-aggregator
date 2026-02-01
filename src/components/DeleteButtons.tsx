@@ -135,3 +135,54 @@ export function BulkActions() {
     </div>
   );
 }
+
+export function RunDigestButton({ cronSecret }: { cronSecret: string }) {
+  const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState('');
+  const router = useRouter();
+
+  const runDigest = async () => {
+    setLoading(true);
+    setStatus('Fetching feeds...');
+    
+    try {
+      const res = await fetch(`/api/cron/digest?secret=${cronSecret}`);
+      const data = await res.json();
+      
+      if (res.ok && data.success) {
+        setStatus(`Done! ${data.aiProcessed} AI + ${data.savedWithoutAI} basic articles`);
+        setTimeout(() => {
+          router.refresh();
+          setLoading(false);
+          setStatus('');
+        }, 1500);
+      } else {
+        setStatus('Error: ' + (data.error || 'Unknown error'));
+        setLoading(false);
+      }
+    } catch (e) {
+      setStatus('Failed to run digest');
+      setLoading(false);
+    }
+  };
+
+  return (
+    <button
+      onClick={runDigest}
+      disabled={loading}
+      className="block w-full px-4 py-3 bg-blue-600 text-white text-center rounded-xl hover:bg-blue-700 transition-colors font-medium disabled:bg-blue-400"
+    >
+      {loading ? (
+        <span className="flex items-center justify-center gap-2">
+          <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          {status}
+        </span>
+      ) : (
+        '🔄 Run Digest'
+      )}
+    </button>
+  );
+}
