@@ -30,26 +30,6 @@ export const feedSources: FeedSource[] = [
     category: 'agents',
   },
   {
-    name: 'AI Agent News (Reddit)',
-    url: 'https://www.reddit.com/r/AI_Agents/.rss',
-    category: 'agents',
-  },
-  {
-    name: 'AutoGPT Reddit',
-    url: 'https://www.reddit.com/r/AutoGPT/.rss',
-    category: 'agents',
-  },
-  {
-    name: 'LangChain Reddit',
-    url: 'https://www.reddit.com/r/LangChain/.rss',
-    category: 'agents',
-  },
-  {
-    name: 'LocalLLaMA Reddit',
-    url: 'https://www.reddit.com/r/LocalLLaMA/.rss',
-    category: 'agents',
-  },
-  {
     name: 'Fixie AI Blog',
     url: 'https://www.fixie.ai/blog/rss.xml',
     category: 'agents',
