@@ -9,16 +9,20 @@ export const runtime = 'nodejs';
 export const maxDuration = 300; // 5 minutes max
 
 // Verify cron secret to prevent unauthorized access
+// Allows: Vercel cron (with secret), or manual trigger with ?secret= param
 function verifyCronSecret(request: Request): boolean {
   const authHeader = request.headers.get('authorization');
   const cronSecret = process.env.CRON_SECRET;
+  const url = new URL(request.url);
+  const querySecret = url.searchParams.get('secret');
 
   if (!cronSecret) {
     console.warn('CRON_SECRET not set, skipping verification');
     return true;
   }
 
-  return authHeader === `Bearer ${cronSecret}`;
+  // Allow either header auth (Vercel cron) or query param (manual trigger)
+  return authHeader === `Bearer ${cronSecret}` || querySecret === cronSecret;
 }
 
 export async function GET(request: Request) {

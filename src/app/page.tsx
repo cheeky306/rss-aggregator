@@ -177,7 +177,7 @@ export default async function Dashboard({
           <div className="flex items-center justify-between">
             <h1 className="text-xl font-bold">📰 News Aggregator</h1>
             <a
-              href="/api/cron/digest"
+              href={`/api/cron/digest?secret=${process.env.CRON_SECRET}`}
               className="text-sm px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
             >
               Run Digest Now
