@@ -4,11 +4,83 @@
 export interface FeedSource {
   name: string;
   url: string;
-  category: 'ai' | 'seo' | 'tech' | 'marketing';
+  category: 'ai' | 'agents' | 'seo' | 'tech' | 'marketing';
 }
 
 export const feedSources: FeedSource[] = [
-  // AI News
+  // AI Agents & Autonomous Systems
+  {
+    name: 'LangChain Blog',
+    url: 'https://blog.langchain.dev/rss/',
+    category: 'agents',
+  },
+  {
+    name: 'LlamaIndex Blog',
+    url: 'https://www.llamaindex.ai/blog/rss.xml',
+    category: 'agents',
+  },
+  {
+    name: 'AutoGPT Blog',
+    url: 'https://news.agpt.co/feed/',
+    category: 'agents',
+  },
+  {
+    name: 'Crew AI Blog',
+    url: 'https://www.crewai.com/blog/rss.xml',
+    category: 'agents',
+  },
+  {
+    name: 'AI Agent News (Reddit)',
+    url: 'https://www.reddit.com/r/AI_Agents/.rss',
+    category: 'agents',
+  },
+  {
+    name: 'AutoGPT Reddit',
+    url: 'https://www.reddit.com/r/AutoGPT/.rss',
+    category: 'agents',
+  },
+  {
+    name: 'LangChain Reddit',
+    url: 'https://www.reddit.com/r/LangChain/.rss',
+    category: 'agents',
+  },
+  {
+    name: 'LocalLLaMA Reddit',
+    url: 'https://www.reddit.com/r/LocalLLaMA/.rss',
+    category: 'agents',
+  },
+  {
+    name: 'Fixie AI Blog',
+    url: 'https://www.fixie.ai/blog/rss.xml',
+    category: 'agents',
+  },
+  {
+    name: 'E2B Blog',
+    url: 'https://e2b.dev/blog/rss.xml',
+    category: 'agents',
+  },
+  {
+    name: 'Lindy AI Blog',
+    url: 'https://www.lindy.ai/blog/rss.xml',
+    category: 'agents',
+  },
+  {
+    name: 'AI Snake Oil',
+    url: 'https://aisnakeoil.substack.com/feed',
+    category: 'agents',
+  },
+  {
+    name: 'Ahead of AI (Sebastian Raschka)',
+    url: 'https://magazine.sebastianraschka.com/feed',
+    category: 'agents',
+  },
+  {
+    name: 'AIModels.fyi',
+    url: 'https://aimodels.substack.com/feed',
+    category: 'agents',
+  },
+
+  // AI News (General)
   {
     name: 'MIT Technology Review - AI',
     url: 'https://www.technologyreview.com/topic/artificial-intelligence/feed',
@@ -54,6 +126,31 @@ export const feedSources: FeedSource[] = [
     url: 'https://huggingface.co/blog/feed.xml',
     category: 'ai',
   },
+  {
+    name: 'Meta AI Blog',
+    url: 'https://ai.meta.com/blog/rss/',
+    category: 'ai',
+  },
+  {
+    name: 'Microsoft AI Blog',
+    url: 'https://blogs.microsoft.com/ai/feed/',
+    category: 'ai',
+  },
+  {
+    name: 'DeepMind Blog',
+    url: 'https://deepmind.google/blog/rss.xml',
+    category: 'ai',
+  },
+  {
+    name: 'Cohere Blog',
+    url: 'https://cohere.com/blog/rss.xml',
+    category: 'ai',
+  },
+  {
+    name: 'Mistral AI Blog',
+    url: 'https://mistral.ai/feed.xml',
+    category: 'ai',
+  },
 
   // SEO & Search
   {
@@ -79,6 +176,11 @@ export const feedSources: FeedSource[] = [
   {
     name: 'Search Engine Roundtable',
     url: 'https://www.seroundtable.com/feed',
+    category: 'seo',
+  },
+  {
+    name: 'Semrush Blog',
+    url: 'https://www.semrush.com/blog/feed/',
     category: 'seo',
   },
 
@@ -118,7 +220,8 @@ export const feedSources: FeedSource[] = [
 ];
 
 export const categoryLabels: Record<FeedSource['category'], string> = {
-  ai: '🤖 AI & Machine Learning',
+  agents: '🤖 AI Agents',
+  ai: '🧠 AI & ML',
   seo: '🔍 SEO & Search',
   tech: '💻 Tech News',
   marketing: '📈 Marketing',

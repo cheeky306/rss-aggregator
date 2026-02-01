@@ -7,6 +7,7 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 const categoryColors: Record<string, { bg: string; text: string; border: string }> = {
+  agents: { bg: 'bg-violet-50', text: 'text-violet-700', border: 'border-violet-200' },
   ai: { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200' },
   seo: { bg: 'bg-green-50', text: 'text-green-700', border: 'border-green-200' },
   tech: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
@@ -277,7 +278,8 @@ function FilterForm({ params }: { params: { category?: string; search?: string; 
             className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white"
           >
             <option value="">All Categories</option>
-            <option value="ai">🤖 AI & ML</option>
+            <option value="agents">🤖 AI Agents</option>
+            <option value="ai">🧠 AI & ML</option>
             <option value="seo">🔍 SEO & Search</option>
             <option value="tech">💻 Tech News</option>
             <option value="marketing">📈 Marketing</option>
