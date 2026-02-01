@@ -17,7 +17,6 @@ interface Article {
   briefing: string | null;
   tags: string[] | null;
   content_angles: string[] | null;
-  full_text: string | null;
 }
 
 async function Sidebar({ 

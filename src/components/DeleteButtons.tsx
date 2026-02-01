@@ -199,7 +199,6 @@ interface Article {
   briefing: string | null;
   tags: string[] | null;
   content_angles: string[] | null;
-  full_text: string | null;
 }
 
 const categoryColors: Record<string, string> = {
@@ -222,9 +221,34 @@ function getTimeAgo(date: Date): string {
 
 export function ExpandableArticleCard({ article }: { article: Article }) {
   const [expanded, setExpanded] = useState(false);
+  const [fullText, setFullText] = useState<string | null>(null);
+  const [loadingFullText, setLoadingFullText] = useState(false);
+  const [fullTextError, setFullTextError] = useState<string | null>(null);
   const colors = categoryColors[article.category] || categoryColors.tech;
   const hasAI = !!article.briefing;
   const router = useRouter();
+
+  const loadFullText = async () => {
+    if (fullText || loadingFullText) return;
+    
+    setLoadingFullText(true);
+    setFullTextError(null);
+    
+    try {
+      const res = await fetch(`/api/articles/${article.id}`);
+      const data = await res.json();
+      
+      if (data.fullText) {
+        setFullText(data.fullText);
+      } else {
+        setFullTextError(data.message || 'Could not load full text');
+      }
+    } catch (e) {
+      setFullTextError('Failed to load full text');
+    }
+    
+    setLoadingFullText(false);
+  };
 
   return (
     <div className={`border-b border-gray-100 transition-colors ${expanded ? 'bg-gray-50' : 'hover:bg-gray-50'}`}>
@@ -353,17 +377,49 @@ export function ExpandableArticleCard({ article }: { article: Article }) {
             </div>
           )}
 
-          {/* Full Text (if available) */}
-          {article.full_text && (
-            <details className="bg-white rounded-lg border">
-              <summary className="px-4 py-3 text-sm font-medium text-gray-600 cursor-pointer hover:bg-gray-50">
-                📄 View Full Article Text
-              </summary>
-              <div className="px-4 pb-4 prose prose-sm max-w-none text-gray-700">
-                <div dangerouslySetInnerHTML={{ __html: article.full_text }} />
-              </div>
-            </details>
-          )}
+          {/* Full Text (lazy loaded) */}
+          <details 
+            className="bg-white rounded-lg border"
+            onToggle={(e) => {
+              if ((e.target as HTMLDetailsElement).open) {
+                loadFullText();
+              }
+            }}
+          >
+            <summary className="px-4 py-3 text-sm font-medium text-gray-600 cursor-pointer hover:bg-gray-50">
+              📄 View Full Article Text
+            </summary>
+            <div className="px-4 pb-4">
+              {loadingFullText && (
+                <div className="flex items-center gap-2 text-gray-500 py-4">
+                  <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Loading full article...
+                </div>
+              )}
+              {fullTextError && (
+                <div className="text-amber-600 py-4">
+                  {fullTextError}
+                  <a 
+                    href={article.url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="ml-2 text-blue-600 hover:underline"
+                  >
+                    Read on original site →
+                  </a>
+                </div>
+              )}
+              {fullText && (
+                <div 
+                  className="prose prose-sm max-w-none text-gray-700"
+                  dangerouslySetInnerHTML={{ __html: fullText }}
+                />
+              )}
+            </div>
+          </details>
 
           {/* Action buttons */}
           <div className="flex gap-3 pt-2">
