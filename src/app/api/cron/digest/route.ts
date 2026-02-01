@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { processFeeds, extractFullText } from '@/lib/rss-fetcher';
 import { generateBriefings, generateDigestIntro, ProcessedArticle } from '@/lib/ai-briefing';
-import { saveArticles, saveArticlesWithoutAI, getArticleCountToday, articleExists } from '@/lib/database';
+import { saveArticles, saveArticlesWithoutAI, getArticleCountToday, articleExists, getDeletedUrls } from '@/lib/database';
 import { sendDigestEmail } from '@/lib/email';
 
 // ============================================
@@ -92,16 +92,25 @@ export async function GET(request: Request) {
       });
     }
 
-    // Step 2: Filter out duplicates
-    log.push('Checking for duplicates...');
+    // Step 2: Filter out duplicates and deleted articles
+    log.push('Checking for duplicates and deleted articles...');
+    const deletedUrls = await getDeletedUrls();
+    log.push(`Found ${deletedUrls.size} deleted URLs to skip`);
+    
     const newArticles = [];
+    let skippedDeleted = 0;
     for (const article of allArticles) {
+      // Skip if URL was previously deleted
+      if (deletedUrls.has(article.url)) {
+        skippedDeleted++;
+        continue;
+      }
       const exists = await articleExists(article.url);
       if (!exists) {
         newArticles.push(article);
       }
     }
-    log.push(`${allArticles.length - newArticles.length} duplicates skipped, ${newArticles.length} new articles`);
+    log.push(`${allArticles.length - newArticles.length - skippedDeleted} duplicates skipped, ${skippedDeleted} deleted articles skipped, ${newArticles.length} new articles`);
 
     if (newArticles.length === 0) {
       log.push('No new articles to save');

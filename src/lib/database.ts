@@ -237,3 +237,54 @@ export async function getStats(): Promise<{
     byCategory,
   };
 }
+
+// ==================== DELETED URLS ====================
+
+// Add URL to deleted list
+export async function addDeletedUrl(url: string): Promise<void> {
+  const { error } = await supabase
+    .from('deleted_urls')
+    .upsert({ url }, { onConflict: 'url', ignoreDuplicates: true });
+
+  if (error) {
+    console.error('Failed to add deleted URL:', error);
+  }
+}
+
+// Check if URL is in deleted list
+export async function isUrlDeleted(url: string): Promise<boolean> {
+  const { data } = await supabase
+    .from('deleted_urls')
+    .select('id')
+    .eq('url', url)
+    .single();
+
+  return !!data;
+}
+
+// Get all deleted URLs (for filtering)
+export async function getDeletedUrls(): Promise<Set<string>> {
+  const { data, error } = await supabase
+    .from('deleted_urls')
+    .select('url');
+
+  if (error || !data) return new Set();
+
+  return new Set(data.map(row => row.url));
+}
+
+// Clear deleted URLs (optional - if user wants to reset)
+export async function clearDeletedUrls(): Promise<number> {
+  const { data, error } = await supabase
+    .from('deleted_urls')
+    .delete()
+    .neq('id', '00000000-0000-0000-0000-000000000000') // Delete all
+    .select();
+
+  if (error) {
+    console.error('Failed to clear deleted URLs:', error);
+    return 0;
+  }
+
+  return data?.length || 0;
+}

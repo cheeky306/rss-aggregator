@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { addDeletedUrl } from '@/lib/database';
 
 export async function DELETE(request: Request) {
   try {
@@ -7,6 +8,18 @@ export async function DELETE(request: Request) {
 
     if (!id) {
       return NextResponse.json({ error: 'Article ID required' }, { status: 400 });
+    }
+
+    // First get the article URL so we can remember it
+    const { data: article } = await supabase
+      .from('articles')
+      .select('url')
+      .eq('id', id)
+      .single();
+
+    if (article?.url) {
+      // Add to deleted URLs list
+      await addDeletedUrl(article.url);
     }
 
     const { error } = await supabase
@@ -32,6 +45,17 @@ export async function POST(request: Request) {
     const { action, ids, olderThan } = await request.json();
 
     if (action === 'delete-selected' && ids?.length > 0) {
+      // Get URLs first
+      const { data: articles } = await supabase
+        .from('articles')
+        .select('url')
+        .in('id', ids);
+
+      // Add to deleted list
+      for (const article of articles || []) {
+        await addDeletedUrl(article.url);
+      }
+
       const { error } = await supabase
         .from('articles')
         .delete()
@@ -42,6 +66,17 @@ export async function POST(request: Request) {
     }
 
     if (action === 'delete-older' && olderThan) {
+      // Get URLs first
+      const { data: articles } = await supabase
+        .from('articles')
+        .select('url')
+        .lt('published_at', olderThan);
+
+      // Add to deleted list
+      for (const article of articles || []) {
+        await addDeletedUrl(article.url);
+      }
+
       const { data, error } = await supabase
         .from('articles')
         .delete()
@@ -53,10 +88,20 @@ export async function POST(request: Request) {
     }
 
     if (action === 'delete-all') {
+      // Get URLs first
+      const { data: articles } = await supabase
+        .from('articles')
+        .select('url');
+
+      // Add to deleted list
+      for (const article of articles || []) {
+        await addDeletedUrl(article.url);
+      }
+
       const { data, error } = await supabase
         .from('articles')
         .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000') // Delete all
+        .neq('id', '00000000-0000-0000-0000-000000000000')
         .select('id');
 
       if (error) throw error;
