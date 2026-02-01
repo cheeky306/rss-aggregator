@@ -18,6 +18,7 @@ const PRIORITY_SOURCES = [           // Sources that always get AI summaries
   'LangChain Blog',
   'Artificial Analysis',
   'MIT Technology Review',
+  'The Rundown AI',
 ];
 const PRIORITY_CATEGORIES = ['agents', 'ai']; // Categories prioritized for AI
 // ============================================

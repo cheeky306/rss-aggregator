@@ -82,6 +82,11 @@ export const feedSources: FeedSource[] = [
 
   // AI News (General)
   {
+    name: 'The Rundown AI',
+    url: 'https://rss.beehiiv.com/feeds/2R3C6Bt5wj.xml',
+    category: 'ai',
+  },
+  {
     name: 'MIT Technology Review - AI',
     url: 'https://www.technologyreview.com/topic/artificial-intelligence/feed',
     category: 'ai',
