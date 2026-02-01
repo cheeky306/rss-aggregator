@@ -8,7 +8,7 @@ export const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 // Types for our database
 export interface Article {
-  id?: string;
+  id: string;
   title: string;
   url: string;
   source_name: string;
