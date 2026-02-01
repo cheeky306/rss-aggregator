@@ -1,255 +1,264 @@
 import { Suspense } from 'react';
-import { getArticles, getStats, getTagCounts } from '@/lib/database';
+import { getArticles, getStats, getSourceCounts } from '@/lib/database';
 import { categoryLabels } from '@/lib/feeds';
 
-// Force dynamic rendering - no caching
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-const categoryColors: Record<string, { bg: string; text: string; border: string }> = {
-  agents: { bg: 'bg-violet-50', text: 'text-violet-700', border: 'border-violet-200' },
-  ai: { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200' },
-  seo: { bg: 'bg-green-50', text: 'text-green-700', border: 'border-green-200' },
-  tech: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
-  marketing: { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200' },
+const categoryColors: Record<string, string> = {
+  agents: 'bg-violet-100 text-violet-700 border-violet-200',
+  ai: 'bg-purple-100 text-purple-700 border-purple-200',
+  seo: 'bg-green-100 text-green-700 border-green-200',
+  tech: 'bg-blue-100 text-blue-700 border-blue-200',
+  marketing: 'bg-orange-100 text-orange-700 border-orange-200',
 };
 
-async function StatsCard() {
-  const stats = await getStats();
-
-  return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-      <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-5 rounded-xl text-white">
-        <p className="text-blue-100 text-sm font-medium">Total Articles</p>
-        <p className="text-3xl font-bold mt-1">{stats.totalArticles}</p>
-      </div>
-      <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 p-5 rounded-xl text-white">
-        <p className="text-emerald-100 text-sm font-medium">Today</p>
-        <p className="text-3xl font-bold mt-1">{stats.todayArticles}</p>
-      </div>
-      {Object.entries(stats.byCategory)
-        .slice(0, 2)
-        .map(([cat, count]) => (
-          <div key={cat} className="bg-gradient-to-br from-gray-700 to-gray-800 p-5 rounded-xl text-white">
-            <p className="text-gray-300 text-sm font-medium capitalize">{cat}</p>
-            <p className="text-3xl font-bold mt-1">{count}</p>
-          </div>
-        ))}
-    </div>
-  );
-}
-
-async function TagCloud() {
-  const tags = await getTagCounts();
-  const sortedTags = Object.entries(tags)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 20);
-
-  if (sortedTags.length === 0) {
-    return null;
-  }
-
-  return (
-    <div className="bg-white p-5 rounded-xl shadow-sm border mb-8">
-      <h2 className="font-semibold mb-4 text-gray-900">🏷️ Popular Tags</h2>
-      <div className="flex flex-wrap gap-2">
-        {sortedTags.map(([tag, count]) => (
-          <a
-            key={tag}
-            href={`?tags=${encodeURIComponent(tag)}`}
-            className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-blue-100 hover:text-blue-700 transition-all"
-          >
-            {tag} <span className="text-gray-400 ml-1">({count})</span>
-          </a>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-interface ArticleCardProps {
-  article: {
-    id: string;
-    title: string;
-    url: string;
-    source_name: string;
-    category: string;
-    published_at: string;
-    summary: string | null;
-    briefing: string | null;
-    tags: string[] | null;
-    content_angles: string[] | null;
-  };
-}
-
-function ArticleCard({ article }: ArticleCardProps) {
-  const categoryLabel =
-    categoryLabels[article.category as keyof typeof categoryLabels] ||
-    article.category;
-  
-  const colors = categoryColors[article.category] || categoryColors.tech;
-  
-  const publishedDate = new Date(article.published_at);
-  const timeAgo = getTimeAgo(publishedDate);
-
-  return (
-    <article className="bg-white rounded-xl shadow-sm border hover:shadow-lg transition-all duration-200 overflow-hidden">
-      {/* Header */}
-      <div className={`px-6 py-4 ${colors.bg} border-b ${colors.border}`}>
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2">
-              <span className={`text-xs px-2.5 py-1 ${colors.bg} ${colors.text} rounded-full font-medium border ${colors.border}`}>
-                {categoryLabel}
-              </span>
-              <span className="text-xs text-gray-500">
-                {article.source_name}
-              </span>
-              <span className="text-xs text-gray-400">•</span>
-              <span className="text-xs text-gray-500">{timeAgo}</span>
-            </div>
-            <h3 className="font-bold text-lg text-gray-900 leading-snug">
-              <a
-                href={article.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-blue-600 transition-colors"
-              >
-                {article.title}
-              </a>
-            </h3>
-          </div>
-          <a
-            href={article.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex-shrink-0 p-2 text-gray-400 hover:text-blue-600 hover:bg-white rounded-lg transition-all"
-            title="Open article"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-              <polyline points="15 3 21 3 21 9"></polyline>
-              <line x1="10" y1="14" x2="21" y2="3"></line>
-            </svg>
-          </a>
-        </div>
-      </div>
-
-      {/* Body */}
-      <div className="px-6 py-5">
-        {/* AI Summary or RSS Snippet */}
-        {article.summary && (
-          <div className="mb-4">
-            {article.briefing && (
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">✨ AI Summary</span>
-              </div>
-            )}
-            <p className="text-gray-600 text-sm leading-relaxed">{article.summary}</p>
-          </div>
-        )}
-
-        {/* AI Briefing */}
-        {article.briefing && (
-          <div className="mb-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-100">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-xs font-semibold text-blue-700 uppercase tracking-wide">📋 Full Briefing</span>
-            </div>
-            <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">{article.briefing}</p>
-          </div>
-        )}
-
-        {/* Tags */}
-        {article.tags && article.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mb-4">
-            {article.tags.map((tag) => (
-              <a
-                key={tag}
-                href={`?tags=${encodeURIComponent(tag)}`}
-                className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-md hover:bg-gray-200 transition-colors"
-              >
-                #{tag}
-              </a>
-            ))}
-          </div>
-        )}
-
-        {/* Content Angles */}
-        {article.content_angles && article.content_angles.length > 0 && (
-          <div className="p-4 bg-gradient-to-r from-amber-50 to-yellow-50 rounded-lg border border-amber-200">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-sm font-semibold text-amber-800">💡 Content Ideas</span>
-              <span className="text-xs text-amber-600 bg-amber-100 px-2 py-0.5 rounded-full">For your content</span>
-            </div>
-            <ul className="space-y-2">
-              {article.content_angles.map((angle, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm text-amber-900">
-                  <span className="flex-shrink-0 w-5 h-5 bg-amber-200 text-amber-800 rounded-full flex items-center justify-center text-xs font-bold mt-0.5">
-                    {i + 1}
-                  </span>
-                  <span>{angle}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </div>
-    </article>
-  );
+interface Article {
+  id: string;
+  title: string;
+  url: string;
+  source_name: string;
+  category: string;
+  published_at: string;
+  summary: string | null;
+  briefing: string | null;
+  tags: string[] | null;
+  content_angles: string[] | null;
 }
 
 function getTimeAgo(date: Date): string {
   const now = new Date();
   const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-  
   if (seconds < 60) return 'just now';
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-  if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`;
+  if (seconds < 604800) return `${Math.floor(seconds / 86400)}d`;
   return date.toLocaleDateString();
+}
+
+function ArticleCard({ article }: { article: Article }) {
+  const colors = categoryColors[article.category] || categoryColors.tech;
+  const hasAI = !!article.briefing;
+  
+  return (
+    <div className="border-b border-gray-100 py-4 hover:bg-gray-50 transition-colors">
+      <div className="flex gap-3">
+        <div className="flex-1 min-w-0">
+          {/* Title */}
+          <a
+            href={article.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-gray-900 hover:text-blue-600 line-clamp-2 leading-snug"
+          >
+            {article.title}
+          </a>
+          
+          {/* Preview text */}
+          {article.summary && (
+            <p className="text-sm text-gray-500 mt-1 line-clamp-2">
+              {article.summary}
+            </p>
+          )}
+          
+          {/* Meta row */}
+          <div className="flex items-center gap-2 mt-2 text-xs">
+            <span className={`px-2 py-0.5 rounded border ${colors}`}>
+              {article.category}
+            </span>
+            <span className="text-gray-400">•</span>
+            <span className="text-gray-500 truncate">{article.source_name}</span>
+            <span className="text-gray-400">•</span>
+            <span className="text-gray-400">{getTimeAgo(new Date(article.published_at))}</span>
+            {hasAI && (
+              <>
+                <span className="text-gray-400">•</span>
+                <span className="text-purple-600 font-medium">✨ AI</span>
+              </>
+            )}
+          </div>
+        </div>
+        
+        {/* External link */}
+        <a
+          href={article.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex-shrink-0 p-2 text-gray-300 hover:text-blue-500"
+        >
+          <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/>
+          </svg>
+        </a>
+      </div>
+      
+      {/* AI Briefing (expandable) */}
+      {article.briefing && (
+        <details className="mt-3">
+          <summary className="text-xs text-purple-600 cursor-pointer hover:text-purple-800">
+            View AI Briefing
+          </summary>
+          <div className="mt-2 p-3 bg-purple-50 rounded-lg text-sm text-gray-700">
+            {article.briefing}
+          </div>
+        </details>
+      )}
+      
+      {/* Content Ideas */}
+      {article.content_angles && article.content_angles.length > 0 && (
+        <details className="mt-2">
+          <summary className="text-xs text-amber-600 cursor-pointer hover:text-amber-800">
+            💡 {article.content_angles.length} Content Ideas
+          </summary>
+          <ul className="mt-2 p-3 bg-amber-50 rounded-lg text-sm space-y-1">
+            {article.content_angles.map((angle, i) => (
+              <li key={i} className="text-amber-900">• {angle}</li>
+            ))}
+          </ul>
+        </details>
+      )}
+    </div>
+  );
+}
+
+async function Sidebar({ 
+  currentSource, 
+  currentCategory 
+}: { 
+  currentSource?: string;
+  currentCategory?: string;
+}) {
+  const stats = await getStats();
+  const sources = await getSourceCounts();
+  
+  const categories = [
+    { key: 'agents', label: '🤖 AI Agents', color: 'text-violet-600' },
+    { key: 'ai', label: '🧠 AI & ML', color: 'text-purple-600' },
+    { key: 'seo', label: '🔍 SEO', color: 'text-green-600' },
+    { key: 'tech', label: '💻 Tech', color: 'text-blue-600' },
+    { key: 'marketing', label: '📈 Marketing', color: 'text-orange-600' },
+  ];
+
+  return (
+    <aside className="w-64 flex-shrink-0">
+      <div className="sticky top-20 space-y-6">
+        {/* Stats */}
+        <div className="bg-white rounded-xl p-4 shadow-sm border">
+          <div className="text-2xl font-bold text-gray-900">{stats.totalArticles}</div>
+          <div className="text-sm text-gray-500">Total Articles</div>
+          <div className="mt-2 text-sm">
+            <span className="text-green-600 font-medium">{stats.todayArticles} today</span>
+          </div>
+        </div>
+        
+        {/* Categories */}
+        <div className="bg-white rounded-xl p-4 shadow-sm border">
+          <h3 className="font-semibold text-gray-900 mb-3">Categories</h3>
+          <div className="space-y-1">
+            <a
+              href="/"
+              className={`block px-3 py-2 rounded-lg text-sm transition-colors ${
+                !currentCategory ? 'bg-gray-100 font-medium' : 'hover:bg-gray-50'
+              }`}
+            >
+              All Categories
+            </a>
+            {categories.map((cat) => (
+              <a
+                key={cat.key}
+                href={`/?category=${cat.key}`}
+                className={`block px-3 py-2 rounded-lg text-sm transition-colors ${
+                  currentCategory === cat.key ? 'bg-gray-100 font-medium' : 'hover:bg-gray-50'
+                }`}
+              >
+                <span className={cat.color}>{cat.label}</span>
+                <span className="float-right text-gray-400">
+                  {stats.byCategory[cat.key] || 0}
+                </span>
+              </a>
+            ))}
+          </div>
+        </div>
+        
+        {/* Sources */}
+        <div className="bg-white rounded-xl p-4 shadow-sm border">
+          <h3 className="font-semibold text-gray-900 mb-3">Sources</h3>
+          <div className="space-y-1 max-h-80 overflow-y-auto">
+            <a
+              href="/"
+              className={`block px-3 py-2 rounded-lg text-sm transition-colors ${
+                !currentSource ? 'bg-gray-100 font-medium' : 'hover:bg-gray-50'
+              }`}
+            >
+              All Sources
+            </a>
+            {Object.entries(sources)
+              .sort((a, b) => b[1] - a[1])
+              .map(([source, count]) => (
+                <a
+                  key={source}
+                  href={`/?source=${encodeURIComponent(source)}`}
+                  className={`block px-3 py-2 rounded-lg text-sm transition-colors truncate ${
+                    currentSource === source ? 'bg-gray-100 font-medium' : 'hover:bg-gray-50'
+                  }`}
+                  title={source}
+                >
+                  <span className="text-gray-700">{source}</span>
+                  <span className="float-right text-gray-400 ml-2">{count}</span>
+                </a>
+              ))}
+          </div>
+        </div>
+        
+        {/* Run Digest */}
+        <a
+          href={`/api/cron/digest?secret=${process.env.CRON_SECRET}`}
+          className="block w-full px-4 py-3 bg-blue-600 text-white text-center rounded-xl hover:bg-blue-700 transition-colors font-medium"
+        >
+          🔄 Run Digest
+        </a>
+      </div>
+    </aside>
+  );
 }
 
 async function ArticleList({
   category,
+  source,
   search,
-  tags,
 }: {
   category?: string;
+  source?: string;
   search?: string;
-  tags?: string;
 }) {
   const articles = await getArticles({
-    category,
-    search,
-    tags: tags?.split(','),
-    limit: 50,
+    category: category || undefined,
+    source: source || undefined,
+    search: search || undefined,
+    limit: 100,
   });
 
   if (articles.length === 0) {
     return (
-      <div className="text-center py-16">
-        <div className="text-6xl mb-4">📭</div>
-        <h3 className="text-xl font-semibold text-gray-700 mb-2">No articles found</h3>
-        <p className="text-gray-500 mb-6">Run the digest to fetch new articles from your RSS feeds.</p>
-        <a
-          href={`/api/cron/digest?secret=${process.env.CRON_SECRET}`}
-          className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-        >
-          🔄 Run Digest Now
-        </a>
+      <div className="text-center py-16 bg-white rounded-xl border">
+        <div className="text-5xl mb-4">📭</div>
+        <h3 className="text-lg font-semibold text-gray-700 mb-2">No articles found</h3>
+        <p className="text-gray-500">Try adjusting your filters or run the digest.</p>
       </div>
     );
   }
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-lg font-semibold text-gray-900">
-          📰 Latest Articles
-          <span className="ml-2 text-sm font-normal text-gray-500">({articles.length})</span>
-        </h2>
+    <div className="bg-white rounded-xl border shadow-sm">
+      <div className="px-4 py-3 border-b bg-gray-50 rounded-t-xl">
+        <span className="font-medium text-gray-900">{articles.length} articles</span>
+        {(category || source || search) && (
+          <a href="/" className="ml-3 text-sm text-blue-600 hover:underline">
+            Clear filters
+          </a>
+        )}
       </div>
-      <div className="space-y-6">
+      <div className="divide-y divide-gray-100 px-4">
         {articles.map((article) => (
           <ArticleCard key={article.id} article={article} />
         ))}
@@ -258,144 +267,106 @@ async function ArticleList({
   );
 }
 
-function FilterForm({ params }: { params: { category?: string; search?: string; tags?: string } }) {
-  return (
-    <div className="bg-white p-5 rounded-xl shadow-sm border mb-8">
-      <form action="/" method="GET" className="flex flex-wrap gap-4">
-        <div className="flex-1 min-w-[250px]">
-          <label className="block text-xs font-medium text-gray-500 mb-1.5">Search</label>
-          <input
-            type="search"
-            name="search"
-            placeholder="Search articles, topics, summaries..."
-            defaultValue={params.search}
-            className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-          />
-        </div>
-        <div className="w-48">
-          <label className="block text-xs font-medium text-gray-500 mb-1.5">Category</label>
-          <select
-            name="category"
-            defaultValue={params.category}
-            className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white"
-          >
-            <option value="">All Categories</option>
-            <option value="agents">🤖 AI Agents</option>
-            <option value="ai">🧠 AI & ML</option>
-            <option value="seo">🔍 SEO & Search</option>
-            <option value="tech">💻 Tech News</option>
-            <option value="marketing">📈 Marketing</option>
-          </select>
-        </div>
-        <div className="flex items-end gap-2">
-          <button
-            type="submit"
-            className="px-6 py-2.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-medium"
-          >
-            Filter
-          </button>
-          {(params.search || params.category || params.tags) && (
-            <a
-              href="/"
-              className="px-4 py-2.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              Clear
-            </a>
-          )}
-        </div>
-      </form>
-      {params.tags && (
-        <div className="mt-4 flex items-center gap-2">
-          <span className="text-sm text-gray-500">Filtered by tag:</span>
-          <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
-            #{params.tags}
-          </span>
-          <a href="/" className="text-sm text-gray-400 hover:text-gray-600">✕ Remove</a>
-        </div>
-      )}
-    </div>
-  );
-}
-
 export default async function Dashboard({
   searchParams,
 }: {
-  searchParams: Promise<{ category?: string; search?: string; tags?: string }>;
+  searchParams: Promise<{ category?: string; source?: string; search?: string }>;
 }) {
   const params = await searchParams;
+  
+  // Clean up empty strings
+  const category = params.category?.trim() || undefined;
+  const source = params.source?.trim() || undefined;
+  const search = params.search?.trim() || undefined;
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white border-b sticky top-0 z-10 shadow-sm">
-        <div className="max-w-6xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+      <header className="bg-white border-b sticky top-0 z-20 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 py-3">
+          <div className="flex items-center justify-between gap-4">
+            <a href="/" className="flex items-center gap-2">
               <span className="text-2xl">📰</span>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">News Aggregator</h1>
-                <p className="text-xs text-gray-500">AI-powered news briefings</p>
-              </div>
-            </div>
-            <a
-              href={`/api/cron/digest?secret=${process.env.CRON_SECRET}`}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3"/>
-              </svg>
-              Run Digest
+              <span className="font-bold text-xl text-gray-900">News Aggregator</span>
             </a>
+            
+            {/* Search */}
+            <form action="/" method="GET" className="flex-1 max-w-xl">
+              <div className="relative">
+                <input
+                  type="search"
+                  name="search"
+                  placeholder="Search articles..."
+                  defaultValue={search}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                />
+                <svg className="absolute left-3 top-2.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              {/* Preserve other filters */}
+              {category && <input type="hidden" name="category" value={category} />}
+              {source && <input type="hidden" name="source" value={source} />}
+            </form>
+            
+            <div className="text-sm text-gray-500">
+              Updated daily at 6am UTC
+            </div>
           </div>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 py-8">
-        {/* Stats */}
-        <Suspense
-          fallback={
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-24 bg-gray-200 animate-pulse rounded-xl" />
-              ))}
-            </div>
-          }
-        >
-          <StatsCard />
-        </Suspense>
-
-        {/* Filters */}
-        <FilterForm params={params} />
-
-        {/* Tags */}
-        <Suspense fallback={null}>
-          <TagCloud />
-        </Suspense>
-
-        {/* Articles */}
-        <Suspense
-          fallback={
-            <div className="space-y-6">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="bg-white rounded-xl h-64 animate-pulse" />
-              ))}
-            </div>
-          }
-        >
-          <ArticleList
-            category={params.category}
-            search={params.search}
-            tags={params.tags}
-          />
-        </Suspense>
-      </main>
-
-      {/* Footer */}
-      <footer className="border-t bg-white mt-12">
-        <div className="max-w-6xl mx-auto px-4 py-6 text-center text-sm text-gray-500">
-          RSS Aggregator • Runs daily at 6am UTC • Powered by OpenAI
+      {/* Main */}
+      <div className="max-w-7xl mx-auto px-4 py-6">
+        <div className="flex gap-6">
+          {/* Sidebar */}
+          <Suspense fallback={<div className="w-64 flex-shrink-0" />}>
+            <Sidebar currentSource={source} currentCategory={category} />
+          </Suspense>
+          
+          {/* Content */}
+          <main className="flex-1 min-w-0">
+            {/* Active filters */}
+            {(category || source || search) && (
+              <div className="mb-4 flex items-center gap-2 flex-wrap">
+                <span className="text-sm text-gray-500">Filters:</span>
+                {category && (
+                  <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm">
+                    {categoryLabels[category as keyof typeof categoryLabels] || category}
+                    <a href={`/?${source ? `source=${encodeURIComponent(source)}` : ''}${search ? `&search=${encodeURIComponent(search)}` : ''}`} className="ml-2 hover:text-purple-900">×</a>
+                  </span>
+                )}
+                {source && (
+                  <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
+                    {source}
+                    <a href={`/?${category ? `category=${category}` : ''}${search ? `&search=${encodeURIComponent(search)}` : ''}`} className="ml-2 hover:text-blue-900">×</a>
+                  </span>
+                )}
+                {search && (
+                  <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
+                    "{search}"
+                    <a href={`/?${category ? `category=${category}` : ''}${source ? `&source=${encodeURIComponent(source)}` : ''}`} className="ml-2 hover:text-gray-900">×</a>
+                  </span>
+                )}
+              </div>
+            )}
+            
+            <Suspense
+              fallback={
+                <div className="bg-white rounded-xl border p-8">
+                  <div className="animate-pulse space-y-4">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <div key={i} className="h-20 bg-gray-100 rounded" />
+                    ))}
+                  </div>
+                </div>
+              }
+            >
+              <ArticleList category={category} source={source} search={search} />
+            </Suspense>
+          </main>
         </div>
-      </footer>
+      </div>
     </div>
   );
 }

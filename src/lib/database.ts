@@ -102,6 +102,7 @@ export async function getArticleCountToday(): Promise<number> {
 // Get articles with filters
 export async function getArticles(options: {
   category?: string;
+  source?: string;
   tags?: string[];
   search?: string;
   limit?: number;
@@ -114,16 +115,18 @@ export async function getArticles(options: {
     .select('*')
     .order('published_at', { ascending: false });
 
-  // Only filter if category has a non-empty value
   if (options.category && options.category.trim() !== '') {
     query = query.eq('category', options.category);
+  }
+
+  if (options.source && options.source.trim() !== '') {
+    query = query.eq('source_name', options.source);
   }
 
   if (options.tags && options.tags.length > 0 && options.tags[0] !== '') {
     query = query.overlaps('tags', options.tags);
   }
 
-  // Only search if search has a non-empty value
   if (options.search && options.search.trim() !== '') {
     query = query.or(
       `title.ilike.%${options.search}%,summary.ilike.%${options.search}%,briefing.ilike.%${options.search}%`
@@ -154,6 +157,20 @@ export async function getArticles(options: {
   }
 
   return data || [];
+}
+
+// Get source counts
+export async function getSourceCounts(): Promise<Record<string, number>> {
+  const { data, error } = await supabase.from('articles').select('source_name');
+
+  if (error || !data) return {};
+
+  const counts: Record<string, number> = {};
+  data.forEach((row) => {
+    counts[row.source_name] = (counts[row.source_name] || 0) + 1;
+  });
+
+  return counts;
 }
 
 // Get unique tags with counts
