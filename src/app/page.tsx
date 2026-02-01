@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import { getArticles, getStats, getSourceCounts } from '@/lib/database';
 import { categoryLabels } from '@/lib/feeds';
 import { BulkActions, RunDigestButton, ExpandableArticleCard } from '@/components/DeleteButtons';
+import { DashboardLayout } from '@/components/DashboardLayout';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -374,6 +375,7 @@ export default async function Dashboard({
     : 20;
 
   return (
+    <DashboardLayout>
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white border-b sticky top-0 z-20 shadow-sm">
@@ -469,5 +471,6 @@ export default async function Dashboard({
         </div>
       </div>
     </div>
+    </DashboardLayout>
   );
 }
