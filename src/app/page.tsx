@@ -2,8 +2,9 @@ import { Suspense } from 'react';
 import { getArticles, getStats, getTagCounts } from '@/lib/database';
 import { categoryLabels } from '@/lib/feeds';
 
-// Force dynamic rendering
+// Force dynamic rendering - no caching
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 async function StatsCard() {
   const stats = await getStats();
