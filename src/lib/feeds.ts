@@ -122,6 +122,21 @@ export const feedSources: FeedSource[] = [
     category: 'ai',
   },
   {
+    name: 'Google Keyword (All)',
+    url: 'https://blog.google/rss/',
+    category: 'tech',
+  },
+  {
+    name: 'Google Gemini',
+    url: 'https://blog.google/products/gemini/rss/',
+    category: 'ai',
+  },
+  {
+    name: 'Google DeepMind Blog',
+    url: 'https://blog.google/technology/google-deepmind/rss/',
+    category: 'ai',
+  },
+  {
     name: 'Hugging Face Blog',
     url: 'https://huggingface.co/blog/feed.xml',
     category: 'ai',
