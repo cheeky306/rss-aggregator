@@ -39,7 +39,7 @@ export async function generateBriefings(
 
 async function processBatch(articles: RawArticle[]): Promise<ProcessedArticle[]> {
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
   const articlesContext = articles
     .map(
@@ -147,7 +147,7 @@ export async function generateDigestIntro(
   }
 
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
   // Only use articles that have actual briefings
   const articlesWithBriefings = articles.filter(a => a.briefing && a.briefing.length > 0);

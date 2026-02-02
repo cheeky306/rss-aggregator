@@ -210,7 +210,7 @@ export function AIPanel({ isOpen, onClose, articleId, articleTitle }: AIPanelPro
           </button>
         </div>
         <p className="text-xs text-gray-400 mt-2 text-center">
-          Gemini 1.5 Flash • Enter to send
+          Gemini 2.0 Flash • Enter to send
         </p>
       </div>
     </div>
