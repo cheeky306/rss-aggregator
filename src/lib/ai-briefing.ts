@@ -1,9 +1,5 @@
-import OpenAI from 'openai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { RawArticle } from './rss-fetcher';
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
-});
 
 export interface ProcessedArticle extends RawArticle {
   summary: string;
@@ -12,12 +8,23 @@ export interface ProcessedArticle extends RawArticle {
   contentAngles: string[];
 }
 
-// Process a batch of articles with OpenAI
+// Process a batch of articles with Gemini
 export async function generateBriefings(
   articles: RawArticle[]
 ): Promise<ProcessedArticle[]> {
+  if (!process.env.GEMINI_API_KEY) {
+    console.error('GEMINI_API_KEY not configured');
+    return articles.map((article) => ({
+      ...article,
+      summary: article.snippet?.slice(0, 300) || '',
+      briefing: '',
+      tags: [],
+      contentAngles: [],
+    }));
+  }
+
   // Process in batches to manage API costs and context
-  const batchSize = 5; // Smaller batches for better reliability
+  const batchSize = 5;
   const results: ProcessedArticle[] = [];
 
   for (let i = 0; i < articles.length; i += batchSize) {
@@ -31,6 +38,9 @@ export async function generateBriefings(
 }
 
 async function processBatch(articles: RawArticle[]): Promise<ProcessedArticle[]> {
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+
   const articlesContext = articles
     .map(
       (a, idx) => `
@@ -51,33 +61,39 @@ For each article provide:
 3. tags: 3-5 topic tags as array
 4. contentAngles: 2-3 specific content ideas as array
 
-Return JSON with "articles" array containing objects with: summary, briefing, tags, contentAngles
+Return ONLY valid JSON with "articles" array containing objects with: summary, briefing, tags, contentAngles
 
 ${articlesContext}
 
-Return ONLY valid JSON:`;
+Return ONLY valid JSON, no markdown:`;
 
   try {
-    console.log('Calling OpenAI API...');
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      max_tokens: 4000,
-      temperature: 0.7,
-      messages: [{ role: 'user', content: prompt }],
-      response_format: { type: 'json_object' },
-    });
-
-    const content = response.choices[0]?.message?.content;
-    console.log('OpenAI response received, length:', content?.length || 0);
+    console.log('Calling Gemini API...');
+    const result = await model.generateContent(prompt);
+    const content = result.response.text();
+    console.log('Gemini response received, length:', content?.length || 0);
     
     if (!content) {
-      console.error('No content in OpenAI response');
+      console.error('No content in Gemini response');
       throw new Error('No response content');
     }
 
+    // Clean up response - remove markdown code blocks if present
+    let cleanContent = content.trim();
+    if (cleanContent.startsWith('```json')) {
+      cleanContent = cleanContent.slice(7);
+    }
+    if (cleanContent.startsWith('```')) {
+      cleanContent = cleanContent.slice(3);
+    }
+    if (cleanContent.endsWith('```')) {
+      cleanContent = cleanContent.slice(0, -3);
+    }
+    cleanContent = cleanContent.trim();
+
     let parsed;
     try {
-      parsed = JSON.parse(content);
+      parsed = JSON.parse(cleanContent);
       console.log('Parsed JSON successfully, keys:', Object.keys(parsed));
     } catch (parseError) {
       console.error('JSON parse error:', parseError);
@@ -87,7 +103,7 @@ Return ONLY valid JSON:`;
     
     // Handle both array and object with articles key
     const articlesData = Array.isArray(parsed) ? parsed : (parsed.articles || []);
-    console.log(`Got ${articlesData.length} article analyses from OpenAI`);
+    console.log(`Got ${articlesData.length} article analyses from Gemini`);
 
     if (articlesData.length === 0) {
       console.error('No articles data in response. Full response:', JSON.stringify(parsed).slice(0, 500));
@@ -126,6 +142,13 @@ Return ONLY valid JSON:`;
 export async function generateDigestIntro(
   articles: ProcessedArticle[]
 ): Promise<string> {
+  if (!process.env.GEMINI_API_KEY) {
+    return 'Today\'s digest contains the latest news from your RSS feeds.';
+  }
+
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+
   // Only use articles that have actual briefings
   const articlesWithBriefings = articles.filter(a => a.briefing && a.briefing.length > 0);
   
@@ -149,14 +172,8 @@ Write conversationally, no bullet points:`;
 
   try {
     console.log('Generating digest intro...');
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      max_tokens: 500,
-      temperature: 0.7,
-      messages: [{ role: 'user', content: prompt }],
-    });
-
-    const intro = response.choices[0]?.message?.content || '';
+    const result = await model.generateContent(prompt);
+    const intro = result.response.text() || '';
     console.log('Digest intro generated, length:', intro.length);
     return intro;
   } catch (error) {

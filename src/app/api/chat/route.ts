@@ -1,10 +1,6 @@
 import { NextResponse } from 'next/server';
-import OpenAI from 'openai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { supabase } from '@/lib/supabase';
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
-});
 
 export async function POST(request: Request) {
   try {
@@ -14,10 +10,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Message required' }, { status: 400 });
     }
 
-    if (!process.env.OPENAI_API_KEY) {
-      console.error('OPENAI_API_KEY not configured');
+    if (!process.env.GEMINI_API_KEY) {
+      console.error('GEMINI_API_KEY not configured');
       return NextResponse.json({ error: 'AI not configured' }, { status: 500 });
     }
+
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
     // Build context from article if provided
     let articleContext = '';
@@ -70,32 +69,27 @@ ${recentContext}
 
 Be concise, helpful, and conversational. Use markdown formatting when helpful.`;
 
-    // Build messages array with conversation history
-    const messages: { role: 'system' | 'user' | 'assistant'; content: string }[] = [
-      { role: 'system', content: systemPrompt },
-    ];
+    // Build conversation history for Gemini
+    const history = conversationHistory?.slice(-10).map((msg: { role: string; content: string }) => ({
+      role: msg.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: msg.content }],
+    })) || [];
 
-    // Add conversation history
-    if (conversationHistory && Array.isArray(conversationHistory)) {
-      for (const msg of conversationHistory.slice(-10)) { // Keep last 10 messages
-        messages.push({
-          role: msg.role as 'user' | 'assistant',
-          content: msg.content,
-        });
-      }
-    }
-
-    // Add current message
-    messages.push({ role: 'user', content: message });
-
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      max_tokens: 1000,
-      temperature: 0.7,
-      messages,
+    const chat = model.startChat({
+      history,
+      generationConfig: {
+        maxOutputTokens: 1000,
+        temperature: 0.7,
+      },
     });
 
-    const reply = response.choices[0]?.message?.content || 'Sorry, I could not generate a response.';
+    // Send message with system context
+    const prompt = history.length === 0 
+      ? `${systemPrompt}\n\nUser: ${message}`
+      : message;
+
+    const result = await chat.sendMessage(prompt);
+    const reply = result.response.text();
 
     return NextResponse.json({ reply });
   } catch (error) {

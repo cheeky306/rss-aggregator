@@ -431,6 +431,12 @@ export default async function Dashboard({
               <span className="font-bold text-xl text-gray-900">Tilly's Journal</span>
             </a>
             
+            {/* Nav */}
+            <div className="flex items-center gap-4">
+              <a href="/" className="text-purple-600 font-medium">Articles</a>
+              <a href="/reddit" className="text-gray-600 hover:text-orange-500">Reddit</a>
+            </div>
+            
             {/* Search */}
             <form action="/" method="GET" className="flex-1 max-w-xl">
               <div className="relative">
