@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import { fetchAllRedditFeeds, redditFeeds, redditCategoryLabels, fetchRedditPosts, RedditPost } from '@/lib/reddit';
 import { DashboardLayout } from '@/components/DashboardLayout';
+import { RedditBreadcrumbs } from '@/components/RedditBreadcrumbs';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 1800;
@@ -288,24 +289,8 @@ export default async function RedditPage({
             
             {/* Content */}
             <main className="flex-1 min-w-0">
-              {/* Active filters */}
-              {(category || subreddit) && (
-                <div className="mb-4 flex items-center gap-2 flex-wrap">
-                  <span className="text-sm text-gray-500">Viewing:</span>
-                  {subreddit && (
-                    <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm">
-                      r/{subreddit}
-                      <a href="/reddit" className="ml-2 hover:text-orange-900">×</a>
-                    </span>
-                  )}
-                  {category && !subreddit && (
-                    <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm">
-                      {redditCategoryLabels[category]}
-                      <a href="/reddit" className="ml-2 hover:text-orange-900">×</a>
-                    </span>
-                  )}
-                </div>
-              )}
+              {/* Breadcrumbs */}
+              <RedditBreadcrumbs category={category} subreddit={subreddit} />
               
               <Suspense
                 fallback={

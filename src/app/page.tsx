@@ -3,6 +3,7 @@ import { getArticles, getStats, getSourceCounts } from '@/lib/database';
 import { categoryLabels } from '@/lib/feeds';
 import { BulkActions, RunDigestButton, ExpandableArticleCard } from '@/components/DeleteButtons';
 import { DashboardLayout } from '@/components/DashboardLayout';
+import { Breadcrumbs } from '@/components/Breadcrumbs';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -474,48 +475,14 @@ export default async function Dashboard({
           
           {/* Content */}
           <main className="flex-1 min-w-0">
-            {/* Active filters */}
-            {(category || source || search || time || view) && (
-              <div className="mb-4 flex items-center gap-2 flex-wrap">
-                <span className="text-sm text-gray-500">Filters:</span>
-                {view === 'favorites' && (
-                  <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm flex items-center gap-1">
-                    ❤️ Favorites
-                    <a href="/" className="ml-1 hover:text-red-900">×</a>
-                  </span>
-                )}
-                {view === 'read-later' && (
-                  <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm flex items-center gap-1">
-                    🔖 Read Later
-                    <a href="/" className="ml-1 hover:text-blue-900">×</a>
-                  </span>
-                )}
-                {time && (
-                  <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">
-                    {time === 'today' ? 'Today' : time === 'yesterday' ? 'Yesterday' : time === 'week' ? 'This Week' : 'This Month'}
-                    <a href={`/?${category ? `category=${category}` : ''}${source ? `&source=${encodeURIComponent(source)}` : ''}${search ? `&search=${encodeURIComponent(search)}` : ''}`} className="ml-2 hover:text-green-900">×</a>
-                  </span>
-                )}
-                {category && (
-                  <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm">
-                    {categoryLabels[category as keyof typeof categoryLabels] || category}
-                    <a href={`/?${time ? `time=${time}` : ''}${source ? `&source=${encodeURIComponent(source)}` : ''}${search ? `&search=${encodeURIComponent(search)}` : ''}`} className="ml-2 hover:text-purple-900">×</a>
-                  </span>
-                )}
-                {source && (
-                  <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
-                    {source}
-                    <a href={`/?${time ? `time=${time}` : ''}${category ? `&category=${category}` : ''}${search ? `&search=${encodeURIComponent(search)}` : ''}`} className="ml-2 hover:text-blue-900">×</a>
-                  </span>
-                )}
-                {search && (
-                  <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
-                    &quot;{search}&quot;
-                    <a href={`/?${time ? `time=${time}` : ''}${category ? `&category=${category}` : ''}${source ? `&source=${encodeURIComponent(source)}` : ''}`} className="ml-2 hover:text-gray-900">×</a>
-                  </span>
-                )}
-              </div>
-            )}
+            {/* Breadcrumbs */}
+            <Breadcrumbs 
+              category={category} 
+              source={source} 
+              time={time} 
+              view={view} 
+              search={search} 
+            />
             
             <Suspense
               fallback={
