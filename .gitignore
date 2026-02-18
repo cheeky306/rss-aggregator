@@ -4,10 +4,9 @@ node_modules/
 .pnp.js
 
 # Build
-.next/
-out/
-build/
-dist/
+docs/.vitepress/dist/
+docs/.vitepress/cache/
+docs/.vitepress/.temp/
 
 # Environment
 .env
@@ -21,12 +20,8 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Vercel
-.vercel
-
 # TypeScript
 *.tsbuildinfo
-next-env.d.ts
 
 # IDE
 .idea/
