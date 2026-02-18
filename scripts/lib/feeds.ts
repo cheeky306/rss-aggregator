@@ -16,32 +16,12 @@ export const feedSources: FeedSource[] = [
   },
   {
     name: 'LlamaIndex Blog',
-    url: 'https://www.llamaindex.ai/blog/rss.xml',
-    category: 'agents',
-  },
-  {
-    name: 'AutoGPT Blog',
-    url: 'https://news.agpt.co/feed/',
+    url: 'https://medium.com/feed/llamaindex-blog',
     category: 'agents',
   },
   {
     name: 'Crew AI Blog',
-    url: 'https://www.crewai.com/blog/rss.xml',
-    category: 'agents',
-  },
-  {
-    name: 'Fixie AI Blog',
-    url: 'https://www.fixie.ai/blog/rss.xml',
-    category: 'agents',
-  },
-  {
-    name: 'E2B Blog',
-    url: 'https://e2b.dev/blog/rss.xml',
-    category: 'agents',
-  },
-  {
-    name: 'Lindy AI Blog',
-    url: 'https://www.lindy.ai/blog/rss.xml',
+    url: 'https://blog.crewai.com/rss/',
     category: 'agents',
   },
   {
@@ -97,11 +77,6 @@ export const feedSources: FeedSource[] = [
     category: 'ai',
   },
   {
-    name: 'Anthropic News',
-    url: 'https://www.anthropic.com/rss.xml',
-    category: 'ai',
-  },
-  {
     name: 'Google AI Blog',
     url: 'https://blog.google/technology/ai/rss/',
     category: 'ai',
@@ -127,11 +102,6 @@ export const feedSources: FeedSource[] = [
     category: 'ai',
   },
   {
-    name: 'Meta AI Blog',
-    url: 'https://ai.meta.com/blog/rss/',
-    category: 'ai',
-  },
-  {
     name: 'Microsoft AI Blog',
     url: 'https://blogs.microsoft.com/ai/feed/',
     category: 'ai',
@@ -139,21 +109,6 @@ export const feedSources: FeedSource[] = [
   {
     name: 'DeepMind Blog',
     url: 'https://deepmind.google/blog/rss.xml',
-    category: 'ai',
-  },
-  {
-    name: 'Cohere Blog',
-    url: 'https://cohere.com/blog/rss.xml',
-    category: 'ai',
-  },
-  {
-    name: 'Hugging Face Blog',
-    url: 'https://huggingface.co/blog/feed.xml',
-    category: 'ai',
-  },
-  {
-    name: 'Mistral AI Blog',
-    url: 'https://mistral.ai/feed.xml',
     category: 'ai',
   },
 
@@ -170,7 +125,7 @@ export const feedSources: FeedSource[] = [
   },
   {
     name: 'Moz Blog',
-    url: 'https://moz.com/feeds/blog',
+    url: 'https://moz.com/feeds/blog.rss',
     category: 'seo',
   },
   {
@@ -180,7 +135,7 @@ export const feedSources: FeedSource[] = [
   },
   {
     name: 'Search Engine Roundtable',
-    url: 'https://www.seroundtable.com/feed',
+    url: 'https://www.seroundtable.com/index.xml',
     category: 'seo',
   },
   {
