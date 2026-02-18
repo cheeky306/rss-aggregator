@@ -37,17 +37,31 @@ CREATE TABLE IF NOT EXISTS sources (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Row Level Security (optional but recommended)
+-- Row Level Security
 ALTER TABLE articles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sources ENABLE ROW LEVEL SECURITY;
 
--- Allow service role full access
-CREATE POLICY "Service role has full access to articles" ON articles
-  FOR ALL USING (true);
+-- Note: service_role bypasses RLS automatically, no policy needed for it.
+-- These policies control access for anon (public) and authenticated users.
 
-CREATE POLICY "Service role has full access to sources" ON sources
-  FOR ALL USING (true);
+-- Articles: anon can read, update (favorites/read-later), and delete
+CREATE POLICY "Allow public read access to articles" ON articles
+  FOR SELECT USING (true);
+
+CREATE POLICY "Allow public update of articles" ON articles
+  FOR UPDATE USING (true)
+  WITH CHECK (true);
+
+CREATE POLICY "Allow public delete of articles" ON articles
+  FOR DELETE USING (true);
+
+-- Articles: only service_role can insert (via digest scripts)
+-- No INSERT policy for anon = insert is denied by default with RLS enabled.
+
+-- Sources: read-only for anon
+CREATE POLICY "Allow public read access to sources" ON sources
+  FOR SELECT USING (true);
 
 -- Grant permissions
-GRANT ALL ON articles TO service_role;
-GRANT ALL ON sources TO service_role;
+GRANT SELECT, UPDATE, DELETE ON articles TO anon;
+GRANT SELECT ON sources TO anon;
